@@ -1,1 +1,115 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>МКС - мини-приложение</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f5f7fa;
+      margin: 0;
+      padding: 20px;
+      text-align: center;
+    }
+    h1 {
+      color: #2c3e50;
+    }
+    .menu {
+      margin: 20px auto;
+      max-width: 400px;
+    }
+    button {
+      display: block;
+      width: 100%;
+      padding: 15px;
+      margin: 10px 0;
+      font-size: 16px;
+      border: none;
+      border-radius: 10px;
+      background: #3498db;
+      color: white;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    button:hover {
+      background: #2980b9;
+    }
+    .hidden {
+      display: none;
+    }
+    .back {
+      background: #95a5a6;
+    }
+    .back:hover {
+      background: #7f8c8d;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>🏠 Добро пожаловать в МКС-мини-приложение!</h1>
+  <p>💧 Управляйте своими услугами легко и быстро ✨</p>
+
+  <!-- Главное меню -->
+  <div id="mainMenu" class="menu">
+    <button onclick="showMessage('✍️ Здесь вы могли бы обновить свои данные (демо).')">📝 Обновить данные</button>
+    <button onclick="showMessage('🔄 В демо-версии смена тарифа недоступна.')">🔄 Поменять тариф</button>
+    <button onclick="showMessage('💳 Баланс временно недоступен.')">💳 Проверить баланс</button>
+    <button onclick="showMessage('💸 Пополнение пока отключено.')">💸 Пополнить баланс</button>
+    <button onclick="openMenu('servicesMenu')">🛠️ Дополнительные услуги</button>
+  </div>
+
+  <!-- Дополнительные услуги -->
+  <div id="servicesMenu" class="menu hidden">
+    <button onclick="openMenu('faqMenu')">❓ Часто задаваемые вопросы</button>
+    <button onclick="showMessage('📋 Инструкция:\\n1️⃣ Нажмите «Обновить данные».\\n2️⃣ Ознакомьтесь с формой.\\n3️⃣ Вернитесь в меню.')">ℹ️ Инструкция</button>
+    <button onclick="window.open('https://t.me/example_support','_blank')">📞 Связаться с техподдержкой</button>
+    <button class="back" onclick="openMenu('mainMenu')">↩️ Вернуться назад</button>
+  </div>
+
+  <!-- FAQ -->
+  <div id="faqMenu" class="menu hidden">
+    <button onclick="showMessage('📌 Показания счётчиков нужно передавать до 25 числа каждого месяца.')">⏳ До какого числа нужно передавать показания?</button>
+    <button onclick="showMessage('⚠️ Плата будет начислена по среднему — исходя из показаний за последние полгода.')">💸 Что будет, если не передать данные вовремя?</button>
+    <button onclick="showMessage('🔐 Да, это демо-приложение, оно безопасно.')">🔒 Это безопасно?</button>
+    <button onclick="showMessage('⚡️ Потому что это удобно и быстро.')">⚡️ Почему через Telegram?</button>
+    <button onclick="showMessage('✅ Да, можно. Просто повторите ввод.')">🔁 Можно ли исправить ошибку?</button>
+    <button onclick="showMessage('👉 В демо-версии документы не требуются.')">📑 Какие документы можно использовать?</button>
+    <button class="back" onclick="openMenu('servicesMenu')">↩️ Вернуться назад</button>
+  </div>
+
+  <!-- Блок для сообщений -->
+  <div id="messageBox" class="menu hidden">
+    <p id="messageText"></p>
+    <button class="back" onclick="goBack()">↩️ Вернуться назад</button>
+  </div>
+
+  <script>
+    let lastMenu = "mainMenu";
+
+    function openMenu(menuId) {
+      document.getElementById("mainMenu").classList.add("hidden");
+      document.getElementById("servicesMenu").classList.add("hidden");
+      document.getElementById("faqMenu").classList.add("hidden");
+      document.getElementById("messageBox").classList.add("hidden");
+
+      document.getElementById(menuId).classList.remove("hidden");
+      lastMenu = menuId;
+    }
+
+    function showMessage(text) {
+      document.getElementById("messageText").innerText = text;
+      document.getElementById("mainMenu").classList.add("hidden");
+      document.getElementById("servicesMenu").classList.add("hidden");
+      document.getElementById("faqMenu").classList.add("hidden");
+      document.getElementById("messageBox").classList.remove("hidden");
+    }
+
+    function goBack() {
+      openMenu(lastMenu);
+    }
+  </script>
+
+</body>
+</html>
 
