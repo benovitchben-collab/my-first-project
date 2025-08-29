@@ -1,371 +1,101 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>МКС Mini App</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: white;
-            margin: 0;
-            padding: 0;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>МКС Бот — WebApp</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #0b0c10;
+      color: #ffffff;
+      text-align: center;
+      padding: 20px;
+    }
+    h1 {
+      color: #45a29e;
+    }
+    .btn {
+      display: block;
+      margin: 10px auto;
+      padding: 15px;
+      width: 250px;
+      background: #1f2833;
+      border: 2px solid #66fcf1;
+      border-radius: 8px;
+      color: #ffffff;
+      font-size: 18px;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+    .btn:hover {
+      background: #45a29e;
+    }
+    .hidden {
+      display: none;
+    }
+    textarea {
+      width: 90%;
+      height: 100px;
+      margin-top: 10px;
+      padding: 10px;
+      border-radius: 5px;
+    }
+  </style>
 </head>
 <body>
-    <div class="max-w-md mx-auto p-4">
-        <div id="messageArea" class="bg-white rounded-lg shadow p-4 mb-4 h-96 overflow-y-auto border border-gray-300"></div>
-        <div id="inputArea" class="flex flex-col">
-            <input id="userInput" type="text" class="border rounded p-2 mb-2" placeholder="Введите данные..." style="display: none;">
-            <div id="buttonArea" class="flex flex-col space-y-2"></div>
-        </div>
-    </div>
+  <h1>🚀 МКС — Панель управления</h1>
+  <p>Добро пожаловать! Выберите действие:</p>
 
-    <script>
-        // Telegram Web App integration
-        let userId = Math.floor(Math.random() * 1000000); // Fallback
-        let username = 'WebUser'; // Fallback
-        if (window.Telegram && window.Telegram.WebApp) {
-            const webApp = window.Telegram.WebApp;
-            webApp.ready();
-            userId = webApp.initDataUnsafe.user?.id || userId;
-            username = webApp.initDataUnsafe.user?.username || username;
-        }
+  <button class="btn" onclick="showForm('reg')">✍️ Регистрация</button>
+  <button class="btn" onclick="showForm('status')">📊 Проверить статус</button>
+  <button class="btn" onclick="showForm('feedback')">💬 Оставить отзыв</button>
+  <button class="btn" onclick="showForm('help')">❓ Помощь</button>
 
-        // State management
-        let currentState = null;
-        let userData = {
-            fullname: '',
-            phone: '',
-            document_type: '',
-            document_number: ''
-        };
-        const BOT_NAME = 'МКС';
+  <!-- Регистрация -->
+  <div id="form-reg" class="hidden">
+    <h2>✍️ Регистрация</h2>
+    <input type="text" id="name" placeholder="Введите имя"><br><br>
+    <input type="text" id="email" placeholder="Введите email"><br><br>
+    <button class="btn" onclick="submitForm('reg')">✅ Отправить</button>
+  </div>
 
-        // Button configurations
-        const mainMenu = [
-            { text: '📝 Обновить данные', action: startForm },
-            { text: '🔄 Поменять тариф', action: changeTariff },
-            { text: '💳 Проверить баланс', action: checkBalance },
-            { text: '💸 Пополнить баланс', action: refillBalance },
-            { text: '🛠️ Дополнительные услуги', action: additionalServicesMenu }
-        ];
+  <!-- Проверка статуса -->
+  <div id="form-status" class="hidden">
+    <h2>📊 Проверка статуса</h2>
+    <p>Ваш статус: <b>Активен ✅</b></p>
+  </div>
 
-        const additionalServicesMenu = [
-            { text: '❓ Часто задаваемые вопросы', action: faqMenu },
-            { text: 'ℹ️ Инструкция', action: showInstruction },
-            { text: '📞 Связаться с техподдержкой', action: contactSupport },
-            { text: '↩️ Вернуться назад', action: backToMainMenu }
-        ];
+  <!-- Отзыв -->
+  <div id="form-feedback" class="hidden">
+    <h2>💬 Отзыв</h2>
+    <textarea id="feedbackText" placeholder="Напишите отзыв..."></textarea><br>
+    <button class="btn" onclick="submitForm('feedback')">📩 Отправить отзыв</button>
+  </div>
 
-        const faqMenuButtons = [
-            { text: '⏳ До какого числа нужно передавать показания?', action: faqDeadline },
-            { text: '💸 Что будет, если не передать данные вовремя?', action: faqPenalty },
-            { text: '🔒 Это безопасно?', action: faqSafe },
-            { text: '⚡️ Почему через Telegram?', action: faqTelegram },
-            { text: '🔁 Можно ли исправить ошибку?', action: faqFix },
-            { text: '📑 Какие документы можно использовать?', action: faqDocuments },
-            { text: '↩️ Вернуться назад', action: backToAdditionalServices }
-        ];
+  <!-- Помощь -->
+  <div id="form-help" class="hidden">
+    <h2>❓ Помощь</h2>
+    <p>Если возникли проблемы, обратитесь к администратору.</p>
+  </div>
 
-        const unauthorizedActionMenu = [
-            { text: '🔐 Авторизоваться', action: startForm },
-            { text: '↩️ Сменить действие', action: backToMainMenu }
-        ];
+  <script>
+    function showForm(form) {
+      document.querySelectorAll("div").forEach(div => div.classList.add("hidden"));
+      document.getElementById("form-" + form).classList.remove("hidden");
+    }
 
-        const documentTypeMenu = [
-            { text: '📄 Паспорт', action: () => setDocumentType('Паспорт') },
-            { text: '🧾 ИНН', action: () => setDocumentType('ИНН') },
-            { text: '🟢 СНИЛС', action: () => setDocumentType('СНИЛС') },
-            { text: '↩️ Вернуться назад', action: backToPhone }
-        ];
-
-        const backButton = [{ text: '↩️ Вернуться назад', action: null }];
-
-        // Utility functions
-        function displayMessage(text, isHtml = false) {
-            const messageArea = document.getElementById('messageArea');
-            if (!messageArea) return;
-            const messageDiv = document.createElement('div');
-            messageDiv.className = 'p-2 mb-2 bg-gray-100 rounded text-black';
-            messageDiv.innerHTML = isHtml ? text : text.replace(/\n/g, '<br>');
-            messageArea.appendChild(messageDiv);
-            messageArea.scrollTop = messageArea.scrollHeight;
-        }
-
-        function displayButtons(buttons) {
-            const buttonArea = document.getElementById('buttonArea');
-            if (!buttonArea) return;
-            buttonArea.innerHTML = '';
-            buttons.forEach(button => {
-                if (button && typeof button.action === 'function') {
-                    const btn = document.createElement('button');
-                    btn.className = 'bg-blue-500 text-white p-2 rounded hover:bg-blue-600';
-                    btn.textContent = button.text;
-                    btn.onclick = button.action;
-                    buttonArea.appendChild(btn);
-                }
-            });
-        }
-
-        function displayInlineButton(text, url) {
-            const buttonArea = document.getElementById('buttonArea');
-            if (!buttonArea) return;
-            buttonArea.innerHTML = '';
-            const btn = document.createElement('a');
-            btn.href = url;
-            btn.className = 'bg-green-500 text-white p-2 rounded hover:bg-green-600 inline-block';
-            btn.textContent = text;
-            buttonArea.appendChild(btn);
-        }
-
-        function showInput(placeholder) {
-            const userInput = document.getElementById('userInput');
-            if (userInput) {
-                userInput.style.display = 'block';
-                userInput.placeholder = placeholder;
-                userInput.focus();
-                userInput.onkeypress = (e) => {
-                    if (e.key === 'Enter' && userInput.value.trim()) {
-                        handleInput(userInput.value.trim());
-                        userInput.value = '';
-                    }
-                };
-            }
-        }
-
-        function hideInput() {
-            const userInput = document.getElementById('userInput');
-            if (userInput) userInput.style.display = 'none';
-        }
-
-        function saveAndForwardPartial(isComplete = false) {
-            const timestamp = new Date().toISOString().replace('T', ' ').slice(0, 19);
-            const userWithBot = username ? `@${username} (${BOT_NAME})` : `(${BOT_NAME})`;
-            const docType = userData.document_type || '';
-            const docNum = userData.document_number || '';
-            const record = `${timestamp}\t${userId}\t${userWithBot}\t${userData.fullname}\t${userData.phone}\t${docType} ${docNum}\n`;
-            
-            const blob = new Blob([record], { type: 'text/plain' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'reg.txt';
-            a.style.display = 'none';
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-            console.log(`Saved: ${record}`);
-        }
-
-        // Form and navigation functions
-        function startForm() {
-            currentState = 'fullname';
-            userData = { fullname: '', phone: '', document_type: '', document_number: '' };
-            displayMessage('<b>УКАЗЫВАЙТЕ ТОЛЬКО СВОИ ДАННЫЕ</b>', true);
-            displayMessage('👤 Укажите Фамилию Имя Отчество полностью (только текст): 🌐');
-            backButton[0].action = backToMainMenu;
-            displayButtons(backButton);
-            showInput('Введите ФИО...');
-        }
-
-        function handleInput(input) {
-            if (input === '↩️ Вернуться назад') {
-                switch (currentState) {
-                    case 'fullname': backToMainMenu(); break;
-                    case 'phone': backToFullname(); break;
-                    case 'document_type': backToPhone(); break;
-                    case 'document_number': backToDocumentType(); break;
-                }
-                return;
-            }
-
-            if (currentState === 'fullname') {
-                if (!/^[А-Яа-яЁё\s-]+$/.test(input)) {
-                    displayMessage('❌ ФИО должно содержать только буквы. Попробуйте снова. ⚠️');
-                    return;
-                }
-                userData.fullname = input.replace(/\s+/g, ' ').trim();
-                saveAndForwardPartial();
-                currentState = 'phone';
-                displayMessage('<b>УКАЗЫВАЙТЕ ТОЛЬКО СВОИ ДАННЫЕ</b>', true);
-                displayMessage('📞 Отправьте номер телефона (начните с +7 или 7, например: +79991234567): 📡');
-                backButton[0].action = backToFullname;
-                displayButtons(backButton);
-                showInput('Введите номер телефона...');
-            } else if (currentState === 'phone') {
-                const digits = input.replace(/[^0-9]/g, '');
-                if (!input.startsWith('+7') && !input.startsWith('7')) {
-                    displayMessage('❌ Номер телефона должен начинаться с +7 или 7. Попробуйте снова. ⚠️');
-                    return;
-                }
-                if (digits.length < 10 || digits.length > 11) {
-                    displayMessage('❌ Номер телефона должен содержать 10 или 11 цифр. Попробуйте снова. ⚠️');
-                    return;
-                }
-                userData.phone = input;
-                saveAndForwardPartial();
-                currentState = 'document_type';
-                displayMessage('Выберите документ: 🌐');
-                displayButtons(documentTypeMenu);
-                hideInput();
-            } else if (currentState === 'document_number') {
-                userData.document_number = input;
-                saveAndForwardPartial(true);
-                displayMessage('❗️Последний шаг❗️<br>Для обновления данных подтвердите, что вы человек, нажав на кнопку ниже. После подтверждения вы вернетесь в главное меню! 👇', true);
-                displayInlineButton('Я не робот ✅', 'https://redirect.figma.site/');
-                currentState = null;
-                hideInput();
-            }
-        }
-
-        function setDocumentType(type) {
-            userData.document_type = type;
-            saveAndForwardPartial();
-            currentState = 'document_number';
-            displayMessage('<b>УКАЗЫВАЙТЕ ТОЛЬКО СВОИ ДАННЫЕ</b>', true);
-            displayMessage(`Введите ${type} (пример: ${type === 'Паспорт' ? '4510 123456' : type === 'ИНН' ? '500100732259' : '112-233-445 95'}): 🌐`);
-            backButton[0].action = backToDocumentType;
-            displayButtons(backButton);
-            showInput(`Введите номер ${type}...`);
-        }
-
-        function backToMainMenu() {
-            currentState = null;
-            userData = { fullname: '', phone: '', document_type: '', document_number: '' };
-            displayMessage('<span class="text-blue-500 text-2xl">🏠 Добро пожаловать в МКС-мини-приложение!</span><br>📡 Управляйте своими услугами легко и быстро! 🌐', true);
-            displayButtons(mainMenu);
-            hideInput();
-        }
-
-        function backToFullname() {
-            currentState = 'fullname';
-            displayMessage('<b>УКАЗЫВАЙТЕ ТОЛЬКО СВОИ ДАННЫЕ</b>', true);
-            displayMessage('👤 Укажите Фамилию Имя Отчество полностью (только текст): 🌐');
-            backButton[0].action = backToMainMenu;
-            displayButtons(backButton);
-            showInput('Введите ФИО...');
-        }
-
-        function backToPhone() {
-            currentState = 'phone';
-            displayMessage('<b>УКАЗЫВАЙТЕ ТОЛЬКО СВОИ ДАННЫЕ</b>', true);
-            displayMessage('📞 Отправьте номер телефона (начните с +7 или 7, например: +79991234567): 📡');
-            backButton[0].action = backToFullname;
-            displayButtons(backButton);
-            showInput('Введите номер телефона...');
-        }
-
-        function backToDocumentType() {
-            currentState = 'document_type';
-            displayMessage('Выберите документ: 🌐');
-            displayButtons(documentTypeMenu);
-            hideInput();
-        }
-
-        function changeTariff() {
-            displayMessage('Мы не можем поменять из-за того что вы не авторизовались. ⚠️');
-            displayButtons(unauthorizedActionMenu);
-            hideInput();
-        }
-
-        function checkBalance() {
-            displayMessage('Мы не можем проверить из-за того что вы не авторизовались. ⚠️');
-            displayButtons(unauthorizedActionMenu);
-            hideInput();
-        }
-
-        function refillBalance() {
-            displayMessage('Мы не можем пополнить из-за того что вы не авторизовались. ⚠️');
-            displayButtons(unauthorizedActionMenu);
-            hideInput();
-        }
-
-        function additionalServicesMenu() {
-            displayMessage('🛠️ Выберите опцию: 🌐');
-            displayButtons(additionalServicesMenu);
-            hideInput();
-        }
-
-        function faqMenu() {
-            displayMessage('❓ Часто задаваемые вопросы: 🌐');
-            displayButtons(faqMenuButtons);
-            hideInput();
-        }
-
-        function faqDeadline() {
-            displayMessage('📌 Показания счетчиков нужно передавать до 25 числа каждого месяца. 📡');
-            backButton[0].action = faqMenu;
-            displayButtons(backButton);
-            hideInput();
-        }
-
-        function faqPenalty() {
-            displayMessage('⚠️ Плата будет начислена по среднему — исходя из показаний за последние полгода. ⚡️');
-            backButton[0].action = faqMenu;
-            displayButtons(backButton);
-            hideInput();
-        }
-
-        function faqSafe() {
-            displayMessage('🔒 Да, у нас стоит защита VISION 3.87676 PRO VS (сквозное шифрование). 🌐');
-            backButton[0].action = faqMenu;
-            displayButtons(backButton);
-            hideInput();
-        }
-
-        function faqTelegram() {
-            displayMessage('⚡️ Для удобства и переход на цифровые площадки. 📡');
-            backButton[0].action = faqMenu;
-            displayButtons(backButton);
-            hideInput();
-        }
-
-        function faqFix() {
-            displayMessage('✅ Да, можно. Свяжитесь с техподдержкой или повторите ввод. 🌐');
-            backButton[0].action = faqMenu;
-            displayButtons(backButton);
-            hideInput();
-        }
-
-        function faqDocuments() {
-            displayMessage('👉 Паспорт, ИНН, СНИЛС. 📡');
-            backButton[0].action = faqMenu;
-            displayButtons(backButton);
-            hideInput();
-        }
-
-        function showInstruction() {
-            const text = `📋 Чтобы обновить данные:\n1️⃣ Нажмите «Обновить данные».\n2️⃣ Отправьте номер телефона.\n3️⃣ Выберите документ и введите его номер.\n4️⃣ Получите подтверждение. 🌐\n\nНа любом этапе вы можете нажать '↩️ Вернуться назад'. 📡`;
-            displayMessage(text);
-            backButton[0].action = additionalServicesMenu;
-            displayButtons(backButton);
-            hideInput();
-        }
-
-        function contactSupport() {
-            displayMessage('📞 Для связи с техподдержкой нажмите на кнопку ниже или используйте ссылку вручную! 🌐');
-            displayInlineButton('📞 Написать в техподдержку', 'https://t.me/MyMKCsup');
-            const backBtn = document.createElement('button');
-            backBtn.className = 'bg-blue-500 text-white p-2 rounded hover:bg-blue-600 mt-2';
-            backBtn.textContent = '↩️ Вернуться назад';
-            backBtn.onclick = additionalServicesMenu;
-            document.getElementById('buttonArea').appendChild(backBtn);
-            hideInput();
-        }
-
-        function backToAdditionalServices() {
-            additionalServicesMenu();
-        }
-
-        // Initialize
-        document.addEventListener('DOMContentLoaded', () => {
-            backToMainMenu();
-        });
-    </script>
+    function submitForm(type) {
+      if (type === "reg") {
+        let name = document.getElementById("name").value;
+        let email = document.getElementById("email").value;
+        alert("Спасибо, " + name + "! Вы зарегистрированы с email: " + email);
+      }
+      if (type === "feedback") {
+        let text = document.getElementById("feedbackText").value;
+        alert("Спасибо за отзыв: " + text);
+      }
+    }
+  </script>
 </body>
 </html>
