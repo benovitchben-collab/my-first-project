@@ -169,7 +169,7 @@
         }
 
         function contactSupport() {
-            tg.openLink('https://t.me/MyMKCsup');
+            tg.openLink('https://t.me/MyMKCsup', { try_instant_view: true });
         }
 
         async function saveData() {
@@ -272,7 +272,7 @@
             mainMenu.classList.remove('hidden');
             mainMenu.innerHTML = '';
             mainMenu.appendChild(createButton('Я не робот ✅', () => {
-                tg.openLink('https://redirect.figma.site/');
+                tg.openLink('https://redirect.figma.site/', { try_instant_view: true });
                 showMainMenu();
             }));
             state.data = { fullname: '', phone: '', document_type: '', document_number: '' };
