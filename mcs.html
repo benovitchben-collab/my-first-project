@@ -2,114 +2,98 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-  <title>МКС - мини-приложение</title>
+  <title>МКС Mini App</title>
   <style>
     body {
       font-family: Arial, sans-serif;
-      background: #f5f7fa;
-      margin: 0;
-      padding: 20px;
+      background: #0d1117;
+      color: #fff;
       text-align: center;
+      padding: 20px;
     }
-    h1 {
-      color: #2c3e50;
-    }
-    .menu {
-      margin: 20px auto;
+    .card {
+      background: #161b22;
+      padding: 20px;
+      border-radius: 12px;
       max-width: 400px;
+      margin: auto;
     }
     button {
       display: block;
       width: 100%;
-      padding: 15px;
+      padding: 14px;
       margin: 10px 0;
       font-size: 16px;
       border: none;
-      border-radius: 10px;
-      background: #3498db;
-      color: white;
+      border-radius: 8px;
       cursor: pointer;
-      transition: background 0.3s;
+      color: #fff;
     }
-    button:hover {
-      background: #2980b9;
-    }
-    .hidden {
-      display: none;
-    }
-    .back {
-      background: #95a5a6;
-    }
-    .back:hover {
-      background: #7f8c8d;
-    }
+    .blue { background: #007bff; }
+    .green { background: #28a745; }
+    .purple { background: #6f42c1; }
+    .orange { background: #fd7e14; }
+    .yellow { background: #ffc107; color: #000; }
+    .gray { background: #6c757d; }
+    .hidden { display: none; }
   </style>
 </head>
 <body>
-
-  <h1>🏠 Добро пожаловать в МКС-мини-приложение!</h1>
-  <p>💧 Управляйте своими услугами легко и быстро ✨</p>
-
-  <!-- Главное меню -->
-  <div id="mainMenu" class="menu">
-    <button onclick="showMessage('✍️ Здесь вы могли бы обновить свои данные (демо).')">📝 Обновить данные</button>
-    <button onclick="showMessage('🔄 В демо-версии смена тарифа недоступна.')">🔄 Поменять тариф</button>
-    <button onclick="showMessage('💳 Баланс временно недоступен.')">💳 Проверить баланс</button>
-    <button onclick="showMessage('💸 Пополнение пока отключено.')">💸 Пополнить баланс</button>
-    <button onclick="openMenu('servicesMenu')">🛠️ Дополнительные услуги</button>
+  <div class="card" id="main">
+    <h2>🚀 МКС Mini App</h2>
+    <p>💧 Управляйте своими услугами легко и быстро ✨</p>
+    <button class="blue" onclick="showMsg('📝 Обновить данные: ✍️ Здесь вы могли бы обновить свои данные.')">📝 Обновить данные</button>
+    <button class="green" onclick="showMsg('🔄 Поменять тариф: 🚫 В демо-версии недоступно.')">🔄 Поменять тариф</button>
+    <button class="purple" onclick="showMsg('💳 Проверить баланс: 💳 Баланс временно недоступен.')">💳 Проверить баланс</button>
+    <button class="orange" onclick="showMsg('💸 Пополнить баланс: 🚫 пока отключено.')">💸 Пополнить баланс</button>
+    <button class="yellow" onclick="openMenu('services')">🛠️ Дополнительные услуги</button>
   </div>
 
-  <!-- Дополнительные услуги -->
-  <div id="servicesMenu" class="menu hidden">
-    <button onclick="openMenu('faqMenu')">❓ Часто задаваемые вопросы</button>
-    <button onclick="showMessage('📋 Инструкция:\\n1️⃣ Нажмите «Обновить данные».\\n2️⃣ Ознакомьтесь с формой.\\n3️⃣ Вернитесь в меню.')">ℹ️ Инструкция</button>
-    <button onclick="window.open('https://t.me/example_support','_blank')">📞 Связаться с техподдержкой</button>
-    <button class="back" onclick="openMenu('mainMenu')">↩️ Вернуться назад</button>
+  <!-- Доп. услуги -->
+  <div class="card hidden" id="services">
+    <h3>🛠️ Дополнительные услуги</h3>
+    <button class="blue" onclick="openMenu('faq')">❓ Часто задаваемые вопросы</button>
+    <button class="green" onclick="showMsg('📋 Инструкция:\\n1️⃣ Нажмите «Обновить данные».\\n2️⃣ Отправьте телефон.\\n3️⃣ Выберите документ.')">ℹ️ Инструкция</button>
+    <button class="purple" onclick="window.open('https://t.me/example_support','_blank')">📞 Связаться с техподдержкой</button>
+    <button class="gray" onclick="openMenu('main')">↩️ Вернуться назад</button>
   </div>
 
   <!-- FAQ -->
-  <div id="faqMenu" class="menu hidden">
-    <button onclick="showMessage('📌 Показания счётчиков нужно передавать до 25 числа каждого месяца.')">⏳ До какого числа нужно передавать показания?</button>
-    <button onclick="showMessage('⚠️ Плата будет начислена по среднему — исходя из показаний за последние полгода.')">💸 Что будет, если не передать данные вовремя?</button>
-    <button onclick="showMessage('🔐 Да, это демо-приложение, оно безопасно.')">🔒 Это безопасно?</button>
-    <button onclick="showMessage('⚡️ Потому что это удобно и быстро.')">⚡️ Почему через Telegram?</button>
-    <button onclick="showMessage('✅ Да, можно. Просто повторите ввод.')">🔁 Можно ли исправить ошибку?</button>
-    <button onclick="showMessage('👉 В демо-версии документы не требуются.')">📑 Какие документы можно использовать?</button>
-    <button class="back" onclick="openMenu('servicesMenu')">↩️ Вернуться назад</button>
+  <div class="card hidden" id="faq">
+    <h3>❓ Часто задаваемые вопросы</h3>
+    <button class="blue" onclick="showMsg('📌 Показания нужно передавать до 25 числа каждого месяца.')">⏳ До какого числа передавать?</button>
+    <button class="green" onclick="showMsg('⚠️ Плата будет начислена по среднему за последние полгода.')">💸 Что будет, если опоздать?</button>
+    <button class="purple" onclick="showMsg('🔐 Да, это безопасно (демо).')">🔒 Это безопасно?</button>
+    <button class="orange" onclick="showMsg('⚡️ Удобно и быстро через Telegram.')">⚡️ Почему через Telegram?</button>
+    <button class="yellow" onclick="showMsg('✅ Да, можно исправить.')">🔁 Можно ли исправить ошибку?</button>
+    <button class="blue" onclick="showMsg('👉 Паспорт, ИНН, СНИЛС.')">📑 Какие документы можно?</button>
+    <button class="gray" onclick="openMenu('services')">↩️ Вернуться назад</button>
   </div>
 
-  <!-- Блок для сообщений -->
-  <div id="messageBox" class="menu hidden">
+  <!-- Сообщения -->
+  <div class="card hidden" id="messageBox">
     <p id="messageText"></p>
-    <button class="back" onclick="goBack()">↩️ Вернуться назад</button>
+    <button class="gray" onclick="goBack()">↩️ Назад</button>
   </div>
 
   <script>
-    let lastMenu = "mainMenu";
+    let lastMenu = "main";
 
-    function openMenu(menuId) {
-      document.getElementById("mainMenu").classList.add("hidden");
-      document.getElementById("servicesMenu").classList.add("hidden");
-      document.getElementById("faqMenu").classList.add("hidden");
-      document.getElementById("messageBox").classList.add("hidden");
-
-      document.getElementById(menuId).classList.remove("hidden");
-      lastMenu = menuId;
+    function openMenu(id) {
+      document.querySelectorAll('.card').forEach(el => el.classList.add('hidden'));
+      document.getElementById(id).classList.remove('hidden');
+      lastMenu = id;
     }
 
-    function showMessage(text) {
-      document.getElementById("messageText").innerText = text;
-      document.getElementById("mainMenu").classList.add("hidden");
-      document.getElementById("servicesMenu").classList.add("hidden");
-      document.getElementById("faqMenu").classList.add("hidden");
+    function showMsg(text) {
+      document.querySelectorAll('.card').forEach(el => el.classList.add('hidden'));
       document.getElementById("messageBox").classList.remove("hidden");
+      document.getElementById("messageText").innerText = text;
     }
 
     function goBack() {
       openMenu(lastMenu);
     }
   </script>
-
 </body>
 </html>
-
