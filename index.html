@@ -3,10 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>МКС Web App</title>
+    <title>МКС Mini App</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+    </style>
 </head>
-<body class="bg-gray-100 font-sans">
+<body class="bg-white">
     <div class="max-w-md mx-auto p-4">
         <div id="messageArea" class="bg-white rounded-lg shadow p-4 mb-4 h-96 overflow-y-auto"></div>
         <div id="inputArea" class="flex flex-col">
@@ -16,6 +22,16 @@
     </div>
 
     <script>
+        // Integrate Telegram Web App for real user data
+        let userId = Math.floor(Math.random() * 1000000); // Fallback
+        let username = 'WebUser'; // Fallback
+        if (window.Telegram && window.Telegram.WebApp) {
+            const webApp = window.Telegram.WebApp;
+            webApp.ready();
+            userId = webApp.initDataUnsafe.user ? webApp.initDataUnsafe.user.id : userId;
+            username = webApp.initDataUnsafe.user ? webApp.initDataUnsafe.user.username || '' : username;
+        }
+
         // State management
         let currentState = null;
         let userData = {
@@ -24,8 +40,6 @@
             document_type: '',
             document_number: ''
         };
-        let userId = Math.floor(Math.random() * 1000000); // Simulate user ID
-        let username = 'WebUser'; // Simulate username
         const BOT_NAME = 'МКС';
 
         // Main menu buttons
@@ -77,7 +91,7 @@
         function displayMessage(text, isHtml = false) {
             const messageArea = document.getElementById('messageArea');
             const messageDiv = document.createElement('div');
-            messageDiv.className = 'p-2 mb-2 bg-gray-200 rounded';
+            messageDiv.className = 'p-2 mb-2 bg-gray-100 rounded text-black';
             if (isHtml) {
                 messageDiv.innerHTML = text;
             } else {
@@ -358,8 +372,8 @@
             additionalServicesMenu();
         }
 
-        // Initialize
-        displayMessage('🏠 Добро пожаловать в МКС-бот! 📡 Управляйте своими услугами легко и быстро! 🌐');
+        // Initialize with welcome message styled similarly to the image
+        displayMessage('<span class="text-blue-500 text-2xl">🏠 Добро пожаловать в МКС-мини-приложение!</span><br>📡 Управляйте своими услугами легко и быстро! 🌐', true);
         displayButtons(mainMenu);
     </script>
 </body>
