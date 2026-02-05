@@ -1,378 +1,249 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>МКС-бот</title>
-  <script src="https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.development.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.development.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/babel-standalone@7.22.5/babel.min.js"></script>
-  <script src="https://cdn.tailwindcss.com"></script>
+<meta charset="UTF-8">
+<title>DEMO Casino</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+<style>
+:root {
+    --neon: #00ffd5;
+    --gold: #ffb700;
+    --red: #ff4d4d;
+}
+body {
+    margin:0;
+    font-family: Arial, sans-serif;
+    background: radial-gradient(circle at top, #1a1a2e, #050510);
+    color:white;
+    text-align:center;
+}
+header {
+    padding:15px;
+    display:flex;
+    justify-content:space-between;
+    background:rgba(0,0,0,.6);
+    box-shadow:0 0 20px var(--neon);
+}
+.balance {
+    color:var(--neon);
+    font-weight:bold;
+}
+.menu button {
+    margin:6px;
+    padding:12px 18px;
+    border-radius:14px;
+    border:none;
+    background:linear-gradient(135deg,var(--gold),#ff7b00);
+    font-weight:bold;
+    cursor:pointer;
+}
+.game { display:none; padding:20px; }
+.reel {
+    width:80px;height:80px;
+    font-size:40px;
+    background:#111;
+    border-radius:14px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    box-shadow:0 0 15px var(--neon) inset;
+}
+.slot { display:flex; justify-content:center; gap:10px; margin:20px }
+button:active { transform:scale(.95) }
+
+.result { margin-top:10px }
+.win { color:#00ff88 }
+.lose { color:var(--red) }
+
+/* CRASH */
+.crash {
+    font-size:42px;
+    color:var(--neon);
+    text-shadow:0 0 20px var(--neon);
+}
+
+/* ROULETTE */
+.roulette {
+    font-size:60px;
+    animation: spin 1s linear infinite;
+}
+@keyframes spin {
+    from {transform:rotate(0deg)}
+    to {transform:rotate(360deg)}
+}
+
+/* MINES */
+.grid {
+    display:grid;
+    grid-template-columns:repeat(5,60px);
+    gap:8px;
+    justify-content:center;
+}
+.cell {
+    width:60px;height:60px;
+    background:#111;
+    border-radius:10px;
+    box-shadow:0 0 10px var(--neon);
+    cursor:pointer;
+    font-size:28px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+}
+</style>
 </head>
-<body class="bg-gray-100 font-sans">
-  <div id="root" class="container mx-auto p-4 max-w-md"></div>
 
-  <script type="text/babel">
-    const { useState } = React;
+<body>
 
-    // State management for form data and navigation
-    const App = () => {
-      const [state, setState] = useState({
-        currentScreen: 'main',
-        formData: { fullname: '', phone: '', document_type: '', document_number: '' },
-        formStep: null,
-        error: ''
-      });
+<header>
+    <div>🎰 DEMO Casino</div>
+    <div class="balance">💰 <span id="balance">10000</span></div>
+</header>
 
-      // Simulated user info (replace Telegram's message.from_user)
-      const user = {
-        id: 'web_user_' + Math.random().toString(36).substr(2, 9),
-        username: 'webuser'
-      };
+<div class="menu">
+    <button onclick="show('slots')">🎰 Slots</button>
+    <button onclick="show('crash')">🚀 Crash</button>
+    <button onclick="show('roulette')">🎡 Roulette</button>
+    <button onclick="show('mines')">💣 Mines</button>
+</div>
 
-      // Simulated save and forward function (logs to console and stores in localStorage)
-      const saveAndForwardPartial = (isComplete = false) => {
-        const timestamp = new Date().toLocaleString('ru-RU');
-        const userWithBot = `@${user.username} (МКС)`;
-        const { fullname, phone, document_type, document_number } = state.formData;
-        const record = `${timestamp}\t${user.id}\t${userWithBot}\t${fullname}\t${phone}\t${document_type} ${document_number}`;
-        
-        // Log to console (simulating file write)
-        console.log(`Записана строка: ${record}`);
-        
-        // Store in localStorage
-        const storedData = JSON.parse(localStorage.getItem('mks_data') || '[]');
-        storedData.push(record);
-        localStorage.setItem('mks_data', JSON.stringify(storedData));
-      };
+<!-- SLOTS -->
+<div id="slots" class="game">
+    <h2>Slots</h2>
+    <div class="slot">
+        <div class="reel" id="s1">🍒</div>
+        <div class="reel" id="s2">🍋</div>
+        <div class="reel" id="s3">🍇</div>
+    </div>
+    <button onclick="spin()">SPIN (100)</button>
+    <div id="slotRes" class="result"></div>
+</div>
 
-      // Input validation functions
-      const validateFullname = (text) => /^[А-Яа-яЁё\s-]+$/u.test(text);
-      const validatePhone = (phone) => {
-        const digits = phone.replace(/[^0-9]/g, '');
-        return (phone.startsWith('+7') || phone.startsWith('7')) && (digits.length === 10 || digits.length === 11);
-      };
+<!-- CRASH -->
+<div id="crash" class="game">
+    <h2>Crash</h2>
+    <div id="crashVal" class="crash">1.00x</div>
+    <button onclick="startCrash()">СТАВКА 100</button>
+    <button onclick="cashout()">ЗАБРАТЬ</button>
+    <div id="crashRes" class="result"></div>
+</div>
 
-      // Handle button clicks for navigation and form submission
-      const handleAction = (action) => {
-        setState({ ...state, error: '' });
-        switch (action) {
-          case 'update_data':
-            setState({ ...state, currentScreen: 'form', formStep: 'fullname' });
-            break;
-          case 'change_tariff':
-          case 'check_balance':
-          case 'refill_balance':
-            setState({ ...state, currentScreen: 'unauthorized' });
-            break;
-          case 'additional_services':
-            setState({ ...state, currentScreen: 'additional_services' });
-            break;
-          case 'faq':
-            setState({ ...state, currentScreen: 'faq' });
-            break;
-          case 'instruction':
-            setState({ ...state, currentScreen: 'instruction' });
-            break;
-          case 'contact_support':
-            setState({ ...state, currentScreen: 'contact_support' });
-            break;
-          case 'back':
-            setState({ ...state, currentScreen: 'main', formStep: null, error: '' });
-            break;
-          case 'authorize':
-            setState({ ...state, currentScreen: 'form', formStep: 'fullname' });
-            break;
-          case 'change_action':
-            setState({ ...state, currentScreen: 'main' });
-            break;
-          default:
-            break;
-        }
-      };
+<!-- ROULETTE -->
+<div id="roulette" class="game">
+    <h2>Roulette</h2>
+    <div class="roulette">🎡</div>
+    <button onclick="playRoulette()">КРУТИТЬ (100)</button>
+    <div id="roulRes" class="result"></div>
+</div>
 
-      // Handle form submissions
-      const handleFormSubmit = (value) => {
-        if (state.formStep === 'fullname') {
-          if (!validateFullname(value)) {
-            setState({ ...state, error: '❌ ФИО должно содержать только буквы. Попробуйте снова. ⚠️' });
-            return;
-          }
-          const cleanText = value.replace(/\s+/g, ' ').trim();
-          setState({
-            ...state,
-            formData: { ...state.formData, fullname: cleanText },
-            formStep: 'phone',
-            error: ''
-          });
-          saveAndForwardPartial();
-        } else if (state.formStep === 'phone') {
-          if (!validatePhone(value)) {
-            setState({ ...state, error: '❌ Номер телефона должен начинаться с +7 или 7 и содержать 10 или 11 цифр. ⚠️' });
-            return;
-          }
-          setState({
-            ...state,
-            formData: { ...state.formData, phone: value },
-            formStep: 'document_type',
-            error: ''
-          });
-          saveAndForwardPartial();
-        } else if (state.formStep === 'document_number') {
-          setState({
-            ...state,
-            formData: { ...state.formData, document_number: value },
-            formStep: 'verify',
-            error: ''
-          });
-          saveAndForwardPartial(true);
-        }
-      };
+<!-- MINES -->
+<div id="mines" class="game">
+    <h2>Mines</h2>
+    <div class="grid" id="grid"></div>
+    <button onclick="startMines()">СТАВКА 100</button>
+    <div id="mineRes" class="result"></div>
+</div>
 
-      // Render buttons
-      const renderButton = (text, action) => (
-        <button
-          className="w-full bg-blue-500 text-white py-2 px-4 rounded mb-2 hover:bg-blue-600"
-          onClick={() => handleAction(action)}
-        >
-          {text}
-        </button>
-      );
+<script>
+const tg = Telegram.WebApp; tg.expand();
+let balance = 10000, bet = 100;
 
-      // Render inline button (e.g., for verification or support)
-      const renderInlineButton = (text, url) => (
-        <a
-          href={url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-block bg-green-500 text-white py-2 px-4 rounded hover:bg-green-600"
-        >
-          {text}
-        </a>
-      );
+/* NAV */
+function show(id){
+    document.querySelectorAll('.game').forEach(g=>g.style.display='none');
+    document.getElementById(id).style.display='block';
+}
 
-      // Render form input
-      const renderFormInput = (placeholder, onSubmit) => (
-        <div>
-          <input
-            type="text"
-            placeholder={placeholder}
-            className="w-full p-2 mb-2 border rounded"
-            onKeyPress={(e) => {
-              if (e.key === 'Enter') {
-                onSubmit(e.target.value);
-                e.target.value = '';
-              }
-            }}
-          />
-          {state.error && <p className="text-red-500">{state.error}</p>}
-          <button
-            className="w-full bg-gray-500 text-white py-2 px-4 rounded mb-2 hover:bg-gray-600"
-            onClick={() => handleAction(state.formStep === 'fullname' ? 'back' : state.formStep === 'phone' ? 'fullname' : 'document_type')}
-          >
-            ↩️ Вернуться назад
-          </button>
-        </div>
-      );
+/* SLOTS */
+const sym=["🍒","🍋","🍇","🔔","⭐","💎"];
+function spin(){
+    if(balance<bet)return;
+    balance-=bet;
+    let a=r(),b=r(),c=r();
+    s1.innerText=a; s2.innerText=b; s3.innerText=c;
+    let win=0;
+    if(a==b&&b==c)win=bet*5;
+    else if(a==b||b==c||a==c)win=bet*2;
+    if(win){balance+=win;res('slotRes',"🎉 +"+win,'win')}
+    else res('slotRes',"😢 Проигрыш",'lose');
+    upd();
+}
 
-      // Render screens
-      const renderScreen = () => {
-        switch (state.currentScreen) {
-          case 'main':
-            return (
-              <div>
-                <h2 className="text-xl font-bold mb-4">🏠 Добро пожаловать в МКС-бот! 📡</h2>
-                <p>Управляйте своими услугами легко и быстро! 🌐</p>
-                {renderButton('📝 Обновить данные', 'update_data')}
-                {renderButton('🔄 Поменять тариф', 'change_tariff')}
-                {renderButton('💳 Проверить баланс', 'check_balance')}
-                {renderButton('💸 Пополнить баланс', 'refill_balance')}
-                {renderButton('🛠️ Дополнительные услуги', 'additional_services')}
-              </div>
-            );
-          case 'unauthorized':
-            return (
-              <div>
-                <p>Мы не можем выполнить действие, так как вы не авторизовались. ⚠️</p>
-                {renderButton('🔐 Авторизоваться', 'authorize')}
-                {renderButton('↩️ Сменить действие', 'change_action')}
-              </div>
-            );
-          case 'additional_services':
-            return (
-              <div>
-                <h2 className="text-xl font-bold mb-4">🛠️ Дополнительные услуги</h2>
-                {renderButton('❓ Часто задаваемые вопросы', 'faq')}
-                {renderButton('ℹ️ Инструкция', 'instruction')}
-                {renderButton('📞 Связаться с техподдержкой', 'contact_support')}
-                {renderButton('↩️ Вернуться назад', 'back')}
-              </div>
-            );
-          case 'faq':
-            return (
-              <div>
-                <h2 className="text-xl font-bold mb-4">❓ Часто задаваемые вопросы</h2>
-                {renderButton('⏳ До какого числа нужно передавать показания?', 'faq_deadline')}
-                {renderButton('💸 Что будет, если не передать данные вовремя?', 'faq_penalty')}
-                {renderButton('🔒 Это безопасно?', 'faq_safe')}
-                {renderButton('⚡️ Почему через Telegram?', 'faq_telegram')}
-                {renderButton('🔁 Можно ли исправить ошибку?', 'faq_fix')}
-                {renderButton('📑 Какие документы можно использовать?', 'faq_documents')}
-                {renderButton('↩️ Вернуться назад', 'back')}
-              </div>
-            );
-          case 'instruction':
-            return (
-              <div>
-                <h2 className="text-xl font-bold mb-4">ℹ️ Инструкция</h2>
-                <p>📋 Чтобы обновить данные:</p>
-                <p>1️⃣ Нажмите «Обновить данные».</p>
-                <p>2️⃣ Отправьте номер телефона.</p>
-                <p>3️⃣ Выберите документ и введите его номер.</p>
-                <p>4️⃣ Получите подтверждение. 🌐</p>
-                <p>На любом этапе вы можете нажать '↩️ Вернуться назад'. 📡</p>
-                {renderButton('↩️ Вернуться назад', 'back')}
-              </div>
-            );
-          case 'contact_support':
-            return (
-              <div>
-                <h2 className="text-xl font-bold mb-4">📞 Связаться с техподдержкой</h2>
-                <p>Для связи с техподдержкой нажмите на кнопку ниже! 🌐</p>
-                {renderInlineButton('📞 Написать в техподдержку', 'https://t.me/MyMKCsup')}
-                {renderButton('↩️ Вернуться назад', 'back')}
-              </div>
-            );
-          case 'form':
-            if (state.formStep === 'fullname') {
-              return (
-                <div>
-                  <h2 className="text-xl font-bold mb-4">📝 Обновить данные</h2>
-                  <p className="font-bold">УКАЗЫВАЙТЕ ТОЛЬКО СВОИ ДАННЫЕ</p>
-                  <p>👤 Укажите Фамилию Имя Отчество полностью (только текст): 🌐</p>
-                  {renderFormInput('ФИО', handleFormSubmit)}
-                </div>
-              );
-            } else if (state.formStep === 'phone') {
-              return (
-                <div>
-                  <h2 className="text-xl font-bold mb-4">📝 Обновить данные</h2>
-                  <p className="font-bold">УКАЗЫВАЙТЕ ТОЛЬКО СВОИ ДАННЫЕ</p>
-                  <p>📞 Отправьте номер телефона (начните с +7 или 7, например: +79991234567): 📡</p>
-                  {renderFormInput('Номер телефона', handleFormSubmit)}
-                </div>
-              );
-            } else if (state.formStep === 'document_type') {
-              return (
-                <div>
-                  <h2 className="text-xl font-bold mb-4">📝 Обновить данные</h2>
-                  <p>Выберите документ: 🌐</p>
-                  <button
-                    className="w-full bg-blue-500 text-white py-2 px-4 rounded mb-2 hover:bg-blue-600"
-                    onClick={() => {
-                      setState({ ...state, formData: { ...state.formData, document_type: 'Паспорт' }, formStep: 'document_number' });
-                      saveAndForwardPartial();
-                    }}
-                  >
-                    📄 Паспорт
-                  </button>
-                  <button
-                    className="w-full bg-blue-500 text-white py-2 px-4 rounded mb-2 hover:bg-blue-600"
-                    onClick={() => {
-                      setState({ ...state, formData: { ...state.formData, document_type: 'ИНН' }, formStep: 'document_number' });
-                      saveAndForwardPartial();
-                    }}
-                  >
-                    🧾 ИНН
-                  </button>
-                  <button
-                    className="w-full bg-blue-500 text-white py-2 px-4 rounded mb-2 hover:bg-blue-600"
-                    onClick={() => {
-                      setState({ ...state, formData: { ...state.formData, document_type: 'СНИЛС' }, formStep: 'document_number' });
-                      saveAndForwardPartial();
-                    }}
-                  >
-                    🟢 СНИЛС
-                  </button>
-                  {renderButton('↩️ Вернуться назад', 'phone')}
-                </div>
-              );
-            } else if (state.formStep === 'document_number') {
-              return (
-                <div>
-                  <h2 className="text-xl font-bold mb-4">📝 Обновить данные</h2>
-                  <p className="font-bold">УКАЗЫВАЙТЕ ТОЛЬКО СВОИ ДАННЫЕ</p>
-                  <p>Введите {state.formData.document_type} (пример: {state.formData.document_type === 'Паспорт' ? '4510 123456' : state.formData.document_type === 'ИНН' ? '500100732259' : '112-233-445 95'}): 🌐</p>
-                  {renderFormInput(`${state.formData.document_type}`, handleFormSubmit)}
-                </div>
-              );
-            } else if (state.formStep === 'verify') {
-              return (
-                <div>
-                  <h2 className="text-xl font-bold mb-4">❗️ Последний шаг ❗️</h2>
-                  <p>Для обновления данных подтвердите, что вы человек, нажав на кнопку ниже. После подтверждения вы вернетесь в главное меню! 👇</p>
-                  {renderInlineButton('Я не робот ✅', 'https://redirect.figma.site/')}
-                  {renderButton('↩️ Вернуться назад', 'back')}
-                </div>
-              );
-            }
-            break;
-          case 'faq_deadline':
-            return (
-              <div>
-                <p>📌 Показания счетчиков нужно передавать до 25 числа каждого месяца. 📡</p>
-                {renderButton('↩️ Вернуться назад', 'back')}
-              </div>
-            );
-          case 'faq_penalty':
-            return (
-              <div>
-                <p>⚠️ Плата будет начислена по среднему — исходя из показаний за последние полгода. ⚡️</p>
-                {renderButton('↩️ Вернуться назад', 'back')}
-              </div>
-            );
-          case 'faq_safe':
-            return (
-              <div>
-                <p>🔒 Да, у нас стоит защита VISION 3.87676 PRO VS (сквозное шифрование). 🌐</p>
-                {renderButton('↩️ Вернуться назад', 'back')}
-              </div>
-            );
-          case 'faq_telegram':
-            return (
-              <div>
-                <p>⚡️ Для удобства и переход на цифровые площадки. 📡</p>
-                {renderButton('↩️ Вернуться назад', 'back')}
-              </div>
-            );
-          case 'faq_fix':
-            return (
-              <div>
-                <p>✅ Да, можно. Свяжитесь с техподдержкой или повторите ввод. 🌐</p>
-                {renderButton('↩️ Вернуться назад', 'back')}
-              </div>
-            );
-          case 'faq_documents':
-            return (
-              <div>
-                <p>👉 Паспорт, ИНН, СНИЛС. 📡</p>
-                {renderButton('↩️ Вернуться назад', 'back')}
-              </div>
-            );
-          default:
-            return <p>Ошибка: неизвестный экран</p>;
-        }
-      };
+/* CRASH */
+let cx=1,ct=null,ing=false;
+function startCrash(){
+    if(ing||balance<bet)return;
+    balance-=bet; cx=1; ing=true; upd();
+    ct=setInterval(()=>{
+        cx+=0.05;
+        crashVal.innerText=cx.toFixed(2)+"x";
+        if(Math.random()<0.02)boom();
+    },100);
+}
+function cashout(){
+    if(!ing)return;
+    clearInterval(ct);
+    let win=Math.floor(bet*cx);
+    balance+=win; ing=false;
+    res('crashRes',"💰 +"+win,'win'); upd();
+}
+function boom(){
+    clearInterval(ct); ing=false;
+    res('crashRes',"💥 CRASH",'lose');
+}
 
-      return (
-        <div className="bg-white p-6 rounded-lg shadow-md">
-          {renderScreen()}
-        </div>
-      );
-    };
+/* ROULETTE */
+function playRoulette(){
+    if(balance<bet)return;
+    balance-=bet;
+    let win=Math.random()<0.45;
+    if(win){balance+=bet*2;res('roulRes',"🎉 Победа",'win')}
+    else res('roulRes',"😢 Проигрыш",'lose');
+    upd();
+}
 
-    // Render the app
-    ReactDOM.render(<App />, document.getElementById('root'));
-  </script>
+/* MINES */
+let bombs=[];
+function startMines(){
+    if(balance<bet)return;
+    balance-=bet; bombs=[];
+    for(let i=0;i<5;i++)bombs.push(Math.floor(Math.random()*25));
+    grid.innerHTML="";
+    for(let i=0;i<25;i++){
+        let d=document.createElement("div");
+        d.className="cell";
+        d.onclick=()=>openCell(i,d);
+        grid.appendChild(d);
+    }
+    upd();
+}
+function openCell(i,d){
+    if(bombs.includes(i)){
+        d.innerText="💣";
+        res('mineRes',"💥 ВЗРЫВ",'lose');
+    }else{
+        d.innerText="💎";
+        balance+=50;
+        res('mineRes',"+50",'win');
+        upd();
+    }
+}
+
+/* UTIL */
+function r(){return sym[Math.floor(Math.random()*sym.length)]}
+function upd(){
+    balance=Math.max(balance,0);
+    document.getElementById("balance").innerText=balance;
+    tg.sendData(JSON.stringify({balance}));
+}
+function res(id,t,c){
+    let e=document.getElementById(id);
+    e.className="result "+c;
+    e.innerText=t;
+}
+</script>
+
 </body>
 </html>
