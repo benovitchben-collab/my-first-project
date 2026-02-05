@@ -2,206 +2,223 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<title>DEMO Casino</title>
+<title>Demo Casino</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
 <style>
-:root{
-  --bg:#0a0e1a;
-  --card:rgba(255,255,255,.08);
-  --neon:#00ffd5;
-  --pink:#ff4edb;
-}
-*{box-sizing:border-box;font-family:Inter,Arial}
+*{box-sizing:border-box}
 body{
   margin:0;
-  background:radial-gradient(circle at top,#141a33,#05070d);
+  background:radial-gradient(circle at top,#1c2345,#070b16);
   color:#fff;
+  font-family:Inter,Arial;
 }
 .hidden{display:none}
 .card{
-  background:var(--card);
+  background:rgba(255,255,255,.06);
   border-radius:18px;
   padding:16px;
-  backdrop-filter:blur(14px);
-  box-shadow:0 0 30px rgba(0,255,213,.15);
-  margin-bottom:12px;
-  animation:fade .3s ease;
+  margin:12px;
+  box-shadow:0 0 40px #000;
 }
-@keyframes fade{from{opacity:0;transform:translateY(10px)}to{opacity:1}}
 button{
   width:100%;
   padding:14px;
-  border-radius:14px;
   border:none;
+  border-radius:14px;
   font-weight:700;
-  background:linear-gradient(135deg,var(--neon),var(--pink));
-  color:#000;
+  background:linear-gradient(135deg,#00ffd5,#ff4edb);
 }
-button:active{transform:scale(.97)}
 input{
   width:100%;
   padding:14px;
-  border-radius:14px;
+  border-radius:12px;
   border:none;
-  margin-bottom:10px;
 }
-.menu{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .top{display:flex;justify-content:space-between}
-.reels{display:flex;justify-content:space-between;font-size:42px}
-.reel{width:18%;height:60px;display:flex;align-items:center;justify-content:center;background:#0004;border-radius:12px}
-.pulse{animation:pulse .6s}
-@keyframes pulse{0%{box-shadow:0 0 0}50%{box-shadow:0 0 25px var(--neon)}100%{box-shadow:0 0 0}}
+.menu{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.reels{display:flex;justify-content:space-between}
+.reel{
+  width:18%;height:80px;
+  font-size:40px;
+  background:#0006;
+  border-radius:14px;
+  display:flex;align-items:center;justify-content:center;
+}
+.spin{animation:spin .15s infinite}
+@keyframes spin{
+  0%{transform:translateY(0)}
+  50%{transform:translateY(-20px)}
+  100%{transform:translateY(0)}
+}
+.win{box-shadow:0 0 25px #00ffd5}
+.jetArea{height:120px;position:relative;overflow:hidden}
+.plane{position:absolute;bottom:10px;left:0;font-size:30px}
+.plinko{height:160px;position:relative}
+.ball{
+  position:absolute;top:0;left:50%;
+  font-size:18px;
+  animation:fall 1s linear forwards;
+}
+@keyframes fall{to{top:140px;left:calc(50% + var(--x))}}
+.small{font-size:12px;opacity:.7}
 </style>
 </head>
 
 <body>
 
-<div id="auth" class="card">
-  <h2>🎰 DEMO Casino</h2>
+<div id="reg" class="card hidden">
+  <h2>🎰 Demo Casino</h2>
   <input id="nick" placeholder="Никнейм">
+  <br><br>
   <button onclick="register()">Войти</button>
 </div>
 
 <div id="casino" class="hidden">
 
-  <div class="card top">
-    <div>👤 <span id="user"></span></div>
-    <div id="balanceBox">💰 <span id="balance"></span></div>
-  </div>
+<div class="card top">
+  <div>👤 <span id="user"></span></div>
+  <div>💰 <span id="bal"></span></div>
+</div>
 
-  <div class="card">
-    🎁 Free Spins: <b id="fsCount"></b>  
-    ⏱ <span id="fsTimer"></span>
-  </div>
+<div class="card menu">
+  <button onclick="open('slots')">🎰 Slots</button>
+  <button onclick="open('jet')">✈️ Jet</button>
+  <button onclick="open('roulette')">🎡 Roulette</button>
+  <button onclick="open('mines')">💣 Mines</button>
+  <button onclick="open('plinko')">🧿 Plinko</button>
+  <button onclick="open('wallet')">💳 Wallet</button>
+</div>
 
-  <div class="menu">
-    <button onclick="openGame('slots')">🎰 Slots</button>
-    <button onclick="openGame('wallet')">💳 Wallet</button>
-    <button onclick="openGame('kyc')">🔐 KYC</button>
+<!-- SLOTS -->
+<div id="slots" class="card hidden">
+  <h3>Slots</h3>
+  <div class="reels">
+    <div class="reel">🍒</div><div class="reel">🍋</div><div class="reel">🔔</div><div class="reel">⭐</div><div class="reel">💎</div>
   </div>
+  <button onclick="spin()">SPIN</button>
+  <div class="small" id="slotHist"></div>
+</div>
 
-  <!-- SLOTS -->
-  <div id="slots" class="card hidden">
-    <h3>🎰 Slots</h3>
-    <div class="reels" id="slotArea">
-      <div class="reel">🍒</div><div class="reel">🍋</div><div class="reel">🔔</div><div class="reel">⭐</div><div class="reel">💎</div>
-    </div>
-    <button onclick="spin()">SPIN (100)</button>
-    <small>Swipe ↓ to spin</small>
+<!-- JET -->
+<div id="jet" class="card hidden">
+  <h3>Jet Crash</h3>
+  <div class="jetArea">
+    <div class="plane" id="plane">✈️</div>
   </div>
+  <div id="jetX">x1.00</div>
+  <button onclick="startJet()">START</button>
+  <div class="small" id="jetHist"></div>
+</div>
 
-  <!-- WALLET -->
-  <div id="wallet" class="card hidden">
-    <h3>💳 Wallet</h3>
-    <button onclick="deposit()">➕ Fake Deposit</button>
-    <button onclick="withdraw()">➖ Fake Withdraw</button>
-    <div id="walletLog"></div>
-  </div>
+<!-- ROULETTE -->
+<div id="roulette" class="card hidden">
+  <h3>Roulette</h3>
+  <button onclick="roulette()">SPIN</button>
+  <div id="roulRes"></div>
+</div>
 
-  <!-- KYC -->
-  <div id="kyc" class="card hidden">
-    <h3>🔐 KYC Verification</h3>
-    <div id="kycStep">Загрузка документов…</div>
-    <button onclick="startKYC()">Начать</button>
-  </div>
+<!-- MINES -->
+<div id="mines" class="card hidden">
+  <h3>Mines</h3>
+  <button onclick="mines()">OPEN</button>
+  <div id="minesRes"></div>
+</div>
+
+<!-- PLINKO -->
+<div id="plinko" class="card hidden">
+  <h3>Plinko</h3>
+  <div class="plinko" id="plinkoBox"></div>
+  <button onclick="drop()">DROP</button>
+</div>
+
+<!-- WALLET -->
+<div id="wallet" class="card hidden">
+  <h3>Wallet</h3>
+  <button onclick="bal+=1000;save()">Fake Deposit +1000</button>
+  <button onclick="bal-=500;save()">Fake Withdraw -500</button>
+</div>
 
 </div>
 
 <script>
 Telegram.WebApp.expand();
+const sym=["🍒","🍋","🔔","⭐","💎","🃏"];
+let bal=+localStorage.getItem("bal")||10000;
 
-/* STATE */
-let user=localStorage.getItem("user");
-let balance=+localStorage.getItem("balance")||10000;
-let freeSpins=+localStorage.getItem("fs")||3;
-let nextFS=+localStorage.getItem("fsTime")||Date.now();
-const symbols=["🍒","🍋","🔔","⭐","💎","🃏"];
+if(!localStorage.getItem("user")){
+  reg.classList.remove("hidden");
+}else{
+  casino.classList.remove("hidden");
+  user.textContent=localStorage.getItem("user");
+  save();
+}
 
-/* AUTH */
 function register(){
-  if(!nick.value.trim())return;
   localStorage.setItem("user",nick.value);
   location.reload();
 }
-
-/* INIT */
-if(user){
-  auth.classList.add("hidden");
-  casino.classList.remove("hidden");
-  userSpan.textContent=user;
-  updateBalance();
-  updateFS();
+function save(){
+  balEl.textContent=bal;
+  localStorage.setItem("bal",bal);
 }
-
-/* UI */
-function openGame(id){
-  ["slots","wallet","kyc"].forEach(g=>document.getElementById(g).classList.add("hidden"));
+function open(id){
+  document.querySelectorAll(".card").forEach(c=>c.id && c.classList.add("hidden"));
   document.getElementById(id).classList.remove("hidden");
 }
-function updateBalance(){
-  balanceEl.textContent=balance.toLocaleString();
-  balanceBox.classList.add("pulse");
-  setTimeout(()=>balanceBox.classList.remove("pulse"),500);
-  localStorage.setItem("balance",balance);
-}
-
-/* FREE SPINS */
-function updateFS(){
-  const now=Date.now();
-  if(now>nextFS){
-    freeSpins++;
-    nextFS=now+15*60*1000;
-    localStorage.setItem("fsTime",nextFS);
-  }
-  fsCount.textContent=freeSpins;
-  fsTimer.textContent=Math.max(0,Math.floor((nextFS-now)/1000))+"s";
-  localStorage.setItem("fs",freeSpins);
-}
-setInterval(updateFS,1000);
 
 /* SLOTS */
 function spin(){
-  let cost=100;
-  if(freeSpins>0){freeSpins--;cost=0;}
-  else if(balance<cost)return;
-  balance-=cost;updateBalance();
-
-  const reels=document.querySelectorAll(".reel");
-  reels.forEach((r,i)=>{
-    let t=setInterval(()=>r.textContent=symbols[Math.floor(Math.random()*symbols.length)],60);
-    setTimeout(()=>clearInterval(t),600+i*200);
+  const r=document.querySelectorAll(".reel");
+  r.forEach((e,i)=>{
+    e.classList.add("spin");
+    setTimeout(()=>{
+      e.classList.remove("spin");
+      e.textContent=sym[Math.floor(Math.random()*sym.length)];
+    },500+i*150);
   });
-  setTimeout(()=>{
-    const v=[...reels].map(r=>r.textContent);
-    if(v.every(x=>x===v[0])){
-      balance+=1200;updateBalance();
+  slotHist.textContent="Spin completed";
+}
+
+/* JET */
+function startJet(){
+  let x=1,pos=0;
+  plane.style.left="0px";
+  jetX.textContent="x1.00";
+  const i=setInterval(()=>{
+    x+=Math.random()*0.08;
+    pos+=6;
+    plane.style.left=pos+"px";
+    jetX.textContent="x"+x.toFixed(2);
+    if(Math.random()<0.03){
+      jetHist.textContent="Crashed at x"+x.toFixed(2);
+      clearInterval(i);
     }
-  },1600);
+  },120);
 }
 
-/* SWIPE */
-let startY;
-slotArea.addEventListener("touchstart",e=>startY=e.touches[0].clientY);
-slotArea.addEventListener("touchend",e=>{
-  if(startY-e.changedTouches[0].clientY>50)spin();
-});
-
-/* WALLET */
-function deposit(){
-  balance+=5000;updateBalance();
-  walletLog.innerHTML+="<div>➕ Deposit 5000</div>";
-}
-function withdraw(){
-  walletLog.innerHTML+="<div>⏳ Withdraw processing…</div>";
+/* ROULETTE */
+function roulette(){
+  const n=Math.floor(Math.random()*37);
+  roulRes.textContent="Result: "+n;
 }
 
-/* KYC */
-function startKYC(){
-  kycStep.textContent="Проверка…";
-  setTimeout(()=>kycStep.textContent="✅ Верификация успешна",2000);
+/* MINES */
+function mines(){
+  minesRes.textContent=Math.random()<0.7?"💎 Safe":"💥 Boom";
+}
+
+/* PLINKO */
+function drop(){
+  const b=document.createElement("div");
+  b.className="ball";
+  b.textContent="●";
+  b.style.setProperty("--x",(Math.random()*120-60)+"px");
+  plinkoBox.innerHTML="";
+  plinkoBox.appendChild(b);
 }
 </script>
+
 </body>
 </html>
