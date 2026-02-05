@@ -12,14 +12,12 @@
   --card:rgba(255,255,255,.08);
   --neon:#00ffd5;
   --pink:#ff4edb;
-  --green:#2ecc71;
 }
 *{box-sizing:border-box;font-family:Inter,Arial}
 body{
   margin:0;
   background:radial-gradient(circle at top,#141a33,#05070d);
   color:#fff;
-  overflow-x:hidden;
 }
 .hidden{display:none}
 .card{
@@ -29,12 +27,9 @@ body{
   backdrop-filter:blur(14px);
   box-shadow:0 0 30px rgba(0,255,213,.15);
   margin-bottom:12px;
-  animation:fade .4s ease;
+  animation:fade .3s ease;
 }
-@keyframes fade{
-  from{opacity:0;transform:translateY(10px)}
-  to{opacity:1;transform:none}
-}
+@keyframes fade{from{opacity:0;transform:translateY(10px)}to{opacity:1}}
 button{
   width:100%;
   padding:14px;
@@ -44,80 +39,72 @@ button{
   background:linear-gradient(135deg,var(--neon),var(--pink));
   color:#000;
 }
-.menu{
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:10px;
+button:active{transform:scale(.97)}
+input{
+  width:100%;
+  padding:14px;
+  border-radius:14px;
+  border:none;
+  margin-bottom:10px;
 }
-.top{display:flex;justify-content:space-between;align-items:center}
-.reels{display:flex;justify-content:space-between;font-size:40px}
+.menu{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.top{display:flex;justify-content:space-between}
+.reels{display:flex;justify-content:space-between;font-size:42px}
 .reel{width:18%;height:60px;display:flex;align-items:center;justify-content:center;background:#0004;border-radius:12px}
-.glow{animation:glow .6s alternate 3}
-@keyframes glow{
-  from{box-shadow:0 0 10px var(--neon)}
-  to{box-shadow:0 0 25px var(--pink)}
-}
+.pulse{animation:pulse .6s}
+@keyframes pulse{0%{box-shadow:0 0 0}50%{box-shadow:0 0 25px var(--neon)}100%{box-shadow:0 0 0}}
 </style>
 </head>
 
 <body>
 
-<!-- AUTH -->
 <div id="auth" class="card">
   <h2>🎰 DEMO Casino</h2>
   <input id="nick" placeholder="Никнейм">
-  <button onclick="login()">Войти</button>
+  <button onclick="register()">Войти</button>
 </div>
 
-<!-- KYC -->
-<div id="kyc" class="card hidden">
-  <h3>🔐 Verification</h3>
-  <p>Step 1/3 · ID Check</p>
-  <button onclick="nextKYC()">Continue</button>
-</div>
-
-<!-- CASINO -->
 <div id="casino" class="hidden">
 
   <div class="card top">
     <div>👤 <span id="user"></span></div>
-    <div>💰 <span id="balance"></span></div>
+    <div id="balanceBox">💰 <span id="balance"></span></div>
   </div>
 
   <div class="card">
-    🎁 Free Spins: <b id="fspins"></b><br>
-    ⏳ Next in: <span id="timer"></span>
+    🎁 Free Spins: <b id="fsCount"></b>  
+    ⏱ <span id="fsTimer"></span>
   </div>
 
   <div class="menu">
-    <button onclick="open('slots')">🎰 Slots</button>
-    <button onclick="open('jetx')">✈️ JetX</button>
-    <button onclick="open('wallet')">🧾 Wallet</button>
-    <button onclick="open('kyc')">🔐 KYC</button>
+    <button onclick="openGame('slots')">🎰 Slots</button>
+    <button onclick="openGame('wallet')">💳 Wallet</button>
+    <button onclick="openGame('kyc')">🔐 KYC</button>
   </div>
 
   <!-- SLOTS -->
   <div id="slots" class="card hidden">
     <h3>🎰 Slots</h3>
-    <div class="reels">
+    <div class="reels" id="slotArea">
       <div class="reel">🍒</div><div class="reel">🍋</div><div class="reel">🔔</div><div class="reel">⭐</div><div class="reel">💎</div>
     </div>
-    <button onclick="spin()">SPIN</button>
-  </div>
-
-  <!-- JETX -->
-  <div id="jetx" class="card hidden">
-    <h3>✈️ JetX</h3>
-    <div id="coef">1.00x</div>
-    <button onclick="startJet()">START</button>
+    <button onclick="spin()">SPIN (100)</button>
+    <small>Swipe ↓ to spin</small>
   </div>
 
   <!-- WALLET -->
   <div id="wallet" class="card hidden">
-    <h3>🧾 Wallet</h3>
-    <button onclick="deposit()">➕ Deposit</button>
-    <button onclick="withdraw()">➖ Withdraw</button>
-    <small id="walletInfo"></small>
+    <h3>💳 Wallet</h3>
+    <button onclick="deposit()">➕ Fake Deposit</button>
+    <button onclick="withdraw()">➖ Fake Withdraw</button>
+    <div id="walletLog"></div>
+  </div>
+
+  <!-- KYC -->
+  <div id="kyc" class="card hidden">
+    <h3>🔐 KYC Verification</h3>
+    <div id="kycStep">Загрузка документов…</div>
+    <button onclick="startKYC()">Начать</button>
   </div>
 
 </div>
@@ -128,99 +115,92 @@ Telegram.WebApp.expand();
 /* STATE */
 let user=localStorage.getItem("user");
 let balance=+localStorage.getItem("balance")||10000;
-let freeSpins=+localStorage.getItem("fspins")||5;
-let nextFS=+localStorage.getItem("nextfs")||Date.now();
+let freeSpins=+localStorage.getItem("fs")||3;
+let nextFS=+localStorage.getItem("fsTime")||Date.now();
+const symbols=["🍒","🍋","🔔","⭐","💎","🃏"];
 
 /* AUTH */
-function login(){
-  if(!nick.value)return;
+function register(){
+  if(!nick.value.trim())return;
   localStorage.setItem("user",nick.value);
   location.reload();
 }
+
+/* INIT */
 if(user){
   auth.classList.add("hidden");
-  kyc.classList.remove("hidden");
-  document.getElementById("user").textContent=user;
-}
-
-/* KYC */
-let kycStep=1;
-function nextKYC(){
-  kycStep++;
-  if(kycStep>3){
-    kyc.classList.add("hidden");
-    casino.classList.remove("hidden");
-    update();
-  } else {
-    kyc.querySelector("p").textContent=`Step ${kycStep}/3 · Verification`;
-  }
+  casino.classList.remove("hidden");
+  userSpan.textContent=user;
+  updateBalance();
+  updateFS();
 }
 
 /* UI */
-function open(id){
-  ["slots","jetx","wallet"].forEach(x=>document.getElementById(x).classList.add("hidden"));
-  if(document.getElementById(id)) document.getElementById(id).classList.remove("hidden");
+function openGame(id){
+  ["slots","wallet","kyc"].forEach(g=>document.getElementById(g).classList.add("hidden"));
+  document.getElementById(id).classList.remove("hidden");
 }
-function update(){
+function updateBalance(){
   balanceEl.textContent=balance.toLocaleString();
-  fspinsEl.textContent=freeSpins;
+  balanceBox.classList.add("pulse");
+  setTimeout(()=>balanceBox.classList.remove("pulse"),500);
   localStorage.setItem("balance",balance);
-  localStorage.setItem("fspins",freeSpins);
 }
 
-/* FREE SPINS TIMER */
-setInterval(()=>{
-  const diff=nextFS-Date.now();
-  if(diff<=0){
-    freeSpins+=5;
-    nextFS=Date.now()+6*60*60*1000;
-    localStorage.setItem("nextfs",nextFS);
+/* FREE SPINS */
+function updateFS(){
+  const now=Date.now();
+  if(now>nextFS){
+    freeSpins++;
+    nextFS=now+15*60*1000;
+    localStorage.setItem("fsTime",nextFS);
   }
-  timer.textContent=new Date(diff>0?diff:0).toISOString().substr(11,8);
-  update();
-},1000);
+  fsCount.textContent=freeSpins;
+  fsTimer.textContent=Math.max(0,Math.floor((nextFS-now)/1000))+"s";
+  localStorage.setItem("fs",freeSpins);
+}
+setInterval(updateFS,1000);
 
 /* SLOTS */
-const symbols=["🍒","🍋","🔔","⭐","💎","🃏"];
 function spin(){
-  if(freeSpins>0) freeSpins--;
-  else if(balance>=100) balance-=100;
-  else return;
+  let cost=100;
+  if(freeSpins>0){freeSpins--;cost=0;}
+  else if(balance<cost)return;
+  balance-=cost;updateBalance();
 
   const reels=document.querySelectorAll(".reel");
-  reels.forEach(r=>{
-    r.textContent=symbols[Math.floor(Math.random()*symbols.length)];
-    r.classList.remove("glow");
+  reels.forEach((r,i)=>{
+    let t=setInterval(()=>r.textContent=symbols[Math.floor(Math.random()*symbols.length)],60);
+    setTimeout(()=>clearInterval(t),600+i*200);
   });
-  const win=Math.random()<0.25;
-  if(win){
-    balance+=500;
-    reels.forEach(r=>r.classList.add("glow"));
-  }
-  update();
+  setTimeout(()=>{
+    const v=[...reels].map(r=>r.textContent);
+    if(v.every(x=>x===v[0])){
+      balance+=1200;updateBalance();
+    }
+  },1600);
 }
 
-/* JETX */
-function startJet(){
-  let coef=1;
-  const int=setInterval(()=>{
-    coef+=Math.random()*0.08;
-    coefEl.textContent=coef.toFixed(2)+"x";
-    if(Math.random()<0.02){
-      clearInterval(int);
-      coefEl.textContent="CRASH";
-    }
-  },100);
-}
+/* SWIPE */
+let startY;
+slotArea.addEventListener("touchstart",e=>startY=e.touches[0].clientY);
+slotArea.addEventListener("touchend",e=>{
+  if(startY-e.changedTouches[0].clientY>50)spin();
+});
 
 /* WALLET */
 function deposit(){
-  balance+=5000;
-  walletInfo.textContent="Deposit successful (DEMO)";
-  update();
+  balance+=5000;updateBalance();
+  walletLog.innerHTML+="<div>➕ Deposit 5000</div>";
 }
 function withdraw(){
-  walletInfo.textContent="Withdrawal pending...";
+  walletLog.innerHTML+="<div>⏳ Withdraw processing…</div>";
+}
+
+/* KYC */
+function startKYC(){
+  kycStep.textContent="Проверка…";
+  setTimeout(()=>kycStep.textContent="✅ Верификация успешна",2000);
 }
 </script>
 </body>
