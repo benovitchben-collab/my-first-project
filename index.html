@@ -8,270 +8,220 @@
 
 <style>
 :root{
-  --bg:#0b0f1a;
-  --card:#12172a;
+  --bg:#0a0e1a;
+  --card:rgba(255,255,255,.08);
   --neon:#00ffd5;
-  --gold:#ffb700;
-  --red:#ff4d4d;
-  --green:#00ff88;
+  --pink:#ff4edb;
+  --green:#2ecc71;
 }
-*{box-sizing:border-box}
+*{box-sizing:border-box;font-family:Inter,Arial}
 body{
   margin:0;
-  font-family:Inter,Arial,sans-serif;
-  background:radial-gradient(circle at top,#141a3a,var(--bg));
-  color:white;
+  background:radial-gradient(circle at top,#141a33,#05070d);
+  color:#fff;
+  overflow-x:hidden;
 }
-header{
-  padding:14px;
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  background:rgba(0,0,0,.6);
-}
-.balance{color:var(--neon);font-weight:800}
-.menu{
-  display:flex;
-  gap:8px;
-  padding:10px;
-}
-.menu button{
-  flex:1;
-  padding:10px;
-  border-radius:14px;
-  border:none;
-  background:linear-gradient(135deg,var(--gold),#ff7b00);
-  font-weight:700;
-}
-.game{display:none;padding:16px}
+.hidden{display:none}
 .card{
   background:var(--card);
   border-radius:18px;
   padding:16px;
+  backdrop-filter:blur(14px);
+  box-shadow:0 0 30px rgba(0,255,213,.15);
+  margin-bottom:12px;
+  animation:fade .4s ease;
 }
-button.action{
+@keyframes fade{
+  from{opacity:0;transform:translateY(10px)}
+  to{opacity:1;transform:none}
+}
+button{
   width:100%;
   padding:14px;
-  margin-top:10px;
   border-radius:14px;
   border:none;
-  font-size:16px;
   font-weight:700;
-  background:linear-gradient(135deg,var(--neon),#00b3ff);
+  background:linear-gradient(135deg,var(--neon),var(--pink));
+  color:#000;
 }
-.result{margin-top:10px;font-weight:700}
-.win{color:var(--green)}
-.lose{color:var(--red)}
-.reels{
+.menu{
   display:grid;
-  grid-template-columns:repeat(5,1fr);
-  gap:8px;
-  margin:16px 0;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
 }
-.reel{
-  height:70px;
-  background:#0a0f24;
-  border-radius:12px;
-  font-size:32px;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-}
-.crashVal{
-  font-size:42px;
-  color:var(--neon);
-}
-.grid{
-  display:grid;
-  grid-template-columns:repeat(5,1fr);
-  gap:8px;
-}
-.cell{
-  height:60px;
-  background:#0a0f24;
-  border-radius:10px;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  font-size:26px;
+.top{display:flex;justify-content:space-between;align-items:center}
+.reels{display:flex;justify-content:space-between;font-size:40px}
+.reel{width:18%;height:60px;display:flex;align-items:center;justify-content:center;background:#0004;border-radius:12px}
+.glow{animation:glow .6s alternate 3}
+@keyframes glow{
+  from{box-shadow:0 0 10px var(--neon)}
+  to{box-shadow:0 0 25px var(--pink)}
 }
 </style>
 </head>
 
 <body>
 
-<header>
-  <div>🎰 DEMO Casino</div>
-  <div class="balance">💰 <span id="balance">10000</span></div>
-</header>
-
-<div class="menu">
-  <button onclick="show('slots')">🎰 Slots</button>
-  <button onclick="show('crash')">🚀 Crash</button>
-  <button onclick="show('roulette')">🎡 Roulette</button>
-  <button onclick="show('mines')">💣 Mines</button>
+<!-- AUTH -->
+<div id="auth" class="card">
+  <h2>🎰 DEMO Casino</h2>
+  <input id="nick" placeholder="Никнейм">
+  <button onclick="login()">Войти</button>
 </div>
 
-<!-- SLOTS -->
-<div id="slots" class="game">
-  <div class="card">
-    <h3>Slots</h3>
-    <div class="reels" id="reels"></div>
-    <button class="action" onclick="spin()">SPIN (100)</button>
-    <div id="slotRes" class="result"></div>
-  </div>
+<!-- KYC -->
+<div id="kyc" class="card hidden">
+  <h3>🔐 Verification</h3>
+  <p>Step 1/3 · ID Check</p>
+  <button onclick="nextKYC()">Continue</button>
 </div>
 
-<!-- CRASH -->
-<div id="crash" class="game">
-  <div class="card">
-    <h3>Crash</h3>
-    <div class="crashVal" id="crashVal">1.00x</div>
-    <button class="action" onclick="startCrash()">BET (100)</button>
-    <button class="action" onclick="cashout()">CASHOUT</button>
-    <div id="crashRes" class="result"></div>
-  </div>
-</div>
+<!-- CASINO -->
+<div id="casino" class="hidden">
 
-<!-- ROULETTE -->
-<div id="roulette" class="game">
-  <div class="card">
-    <h3>Roulette</h3>
-    <button class="action" onclick="playRoulette()">SPIN (100)</button>
-    <div id="roulRes" class="result"></div>
+  <div class="card top">
+    <div>👤 <span id="user"></span></div>
+    <div>💰 <span id="balance"></span></div>
   </div>
-</div>
 
-<!-- MINES -->
-<div id="mines" class="game">
   <div class="card">
-    <h3>Mines</h3>
-    <div class="grid" id="grid"></div>
-    <button class="action" onclick="startMines()">START (100)</button>
-    <div id="mineRes" class="result"></div>
+    🎁 Free Spins: <b id="fspins"></b><br>
+    ⏳ Next in: <span id="timer"></span>
   </div>
+
+  <div class="menu">
+    <button onclick="open('slots')">🎰 Slots</button>
+    <button onclick="open('jetx')">✈️ JetX</button>
+    <button onclick="open('wallet')">🧾 Wallet</button>
+    <button onclick="open('kyc')">🔐 KYC</button>
+  </div>
+
+  <!-- SLOTS -->
+  <div id="slots" class="card hidden">
+    <h3>🎰 Slots</h3>
+    <div class="reels">
+      <div class="reel">🍒</div><div class="reel">🍋</div><div class="reel">🔔</div><div class="reel">⭐</div><div class="reel">💎</div>
+    </div>
+    <button onclick="spin()">SPIN</button>
+  </div>
+
+  <!-- JETX -->
+  <div id="jetx" class="card hidden">
+    <h3>✈️ JetX</h3>
+    <div id="coef">1.00x</div>
+    <button onclick="startJet()">START</button>
+  </div>
+
+  <!-- WALLET -->
+  <div id="wallet" class="card hidden">
+    <h3>🧾 Wallet</h3>
+    <button onclick="deposit()">➕ Deposit</button>
+    <button onclick="withdraw()">➖ Withdraw</button>
+    <small id="walletInfo"></small>
+  </div>
+
 </div>
 
 <script>
 Telegram.WebApp.expand();
 
-/* ===== STATE ===== */
-let balance = +localStorage.getItem('balance') || 10000;
-let bet = 100;
-let bombs = [];
+/* STATE */
+let user=localStorage.getItem("user");
+let balance=+localStorage.getItem("balance")||10000;
+let freeSpins=+localStorage.getItem("fspins")||5;
+let nextFS=+localStorage.getItem("nextfs")||Date.now();
 
-/* ===== UI ===== */
-function show(id){
-  document.querySelectorAll('.game').forEach(g=>g.style.display='none');
-  document.getElementById(id).style.display='block';
+/* AUTH */
+function login(){
+  if(!nick.value)return;
+  localStorage.setItem("user",nick.value);
+  location.reload();
+}
+if(user){
+  auth.classList.add("hidden");
+  kyc.classList.remove("hidden");
+  document.getElementById("user").textContent=user;
+}
+
+/* KYC */
+let kycStep=1;
+function nextKYC(){
+  kycStep++;
+  if(kycStep>3){
+    kyc.classList.add("hidden");
+    casino.classList.remove("hidden");
+    update();
+  } else {
+    kyc.querySelector("p").textContent=`Step ${kycStep}/3 · Verification`;
+  }
+}
+
+/* UI */
+function open(id){
+  ["slots","jetx","wallet"].forEach(x=>document.getElementById(x).classList.add("hidden"));
+  if(document.getElementById(id)) document.getElementById(id).classList.remove("hidden");
 }
 function update(){
-  document.getElementById("balance").innerText = balance;
-  localStorage.setItem('balance', balance);
+  balanceEl.textContent=balance.toLocaleString();
+  fspinsEl.textContent=freeSpins;
+  localStorage.setItem("balance",balance);
+  localStorage.setItem("fspins",freeSpins);
 }
-update(); show('slots');
 
-/* ===== SLOTS ===== */
-const symbols=["🍒","⭐","💎","🃏","🎁"];
-function spin(){
-  if(balance < bet) return;
-  balance -= bet;
-  let reels=document.getElementById("reels");
-  reels.innerHTML="";
-  let row=[];
-  for(let i=0;i<5;i++){
-    let s=symbols[Math.floor(Math.random()*symbols.length)];
-    row.push(s);
-    let d=document.createElement("div");
-    d.className="reel";
-    d.innerText=s;
-    reels.appendChild(d);
+/* FREE SPINS TIMER */
+setInterval(()=>{
+  const diff=nextFS-Date.now();
+  if(diff<=0){
+    freeSpins+=5;
+    nextFS=Date.now()+6*60*60*1000;
+    localStorage.setItem("nextfs",nextFS);
   }
-  let win = new Set(row).size <= 2 ? bet*5 : 0;
+  timer.textContent=new Date(diff>0?diff:0).toISOString().substr(11,8);
+  update();
+},1000);
+
+/* SLOTS */
+const symbols=["🍒","🍋","🔔","⭐","💎","🃏"];
+function spin(){
+  if(freeSpins>0) freeSpins--;
+  else if(balance>=100) balance-=100;
+  else return;
+
+  const reels=document.querySelectorAll(".reel");
+  reels.forEach(r=>{
+    r.textContent=symbols[Math.floor(Math.random()*symbols.length)];
+    r.classList.remove("glow");
+  });
+  const win=Math.random()<0.25;
   if(win){
-    balance += win;
-    slotRes.className="result win";
-    slotRes.innerText="WIN +"+win;
-  }else{
-    slotRes.className="result lose";
-    slotRes.innerText="LOSE";
+    balance+=500;
+    reels.forEach(r=>r.classList.add("glow"));
   }
   update();
 }
 
-/* ===== CRASH ===== */
-let cx=1,timer=null,ing=false;
-function startCrash(){
-  if(balance<bet||ing)return;
-  balance-=bet; cx=1; ing=true; update();
-  timer=setInterval(()=>{
-    cx+=Math.random()*0.15;
-    crashVal.innerText=cx.toFixed(2)+"x";
-    if(Math.random()<0.015) boom();
+/* JETX */
+function startJet(){
+  let coef=1;
+  const int=setInterval(()=>{
+    coef+=Math.random()*0.08;
+    coefEl.textContent=coef.toFixed(2)+"x";
+    if(Math.random()<0.02){
+      clearInterval(int);
+      coefEl.textContent="CRASH";
+    }
   },100);
 }
-function cashout(){
-  if(!ing)return;
-  clearInterval(timer);
-  let win=Math.floor(bet*cx);
-  balance+=win; ing=false;
-  crashRes.className="result win";
-  crashRes.innerText="WIN +"+win;
+
+/* WALLET */
+function deposit(){
+  balance+=5000;
+  walletInfo.textContent="Deposit successful (DEMO)";
   update();
 }
-function boom(){
-  clearInterval(timer); ing=false;
-  crashRes.className="result lose";
-  crashRes.innerText="CRASH";
-}
-
-/* ===== ROULETTE ===== */
-function playRoulette(){
-  if(balance<bet)return;
-  balance-=bet;
-  let win=Math.random()<0.48;
-  if(win){
-    balance+=bet*2;
-    roulRes.className="result win";
-    roulRes.innerText="WIN";
-  }else{
-    roulRes.className="result lose";
-    roulRes.innerText="LOSE";
-  }
-  update();
-}
-
-/* ===== MINES ===== */
-function startMines(){
-  if(balance<bet)return;
-  balance-=bet; update();
-  bombs=[];
-  while(bombs.length<5){
-    let b=Math.floor(Math.random()*25);
-    if(!bombs.includes(b)) bombs.push(b);
-  }
-  grid.innerHTML="";
-  for(let i=0;i<25;i++){
-    let c=document.createElement("div");
-    c.className="cell";
-    c.onclick=()=>openCell(i,c);
-    grid.appendChild(c);
-  }
-}
-function openCell(i,c){
-  if(bombs.includes(i)){
-    c.innerText="💣";
-    mineRes.className="result lose";
-    mineRes.innerText="BOOM";
-  }else{
-    c.innerText="💎";
-    balance+=50;
-    mineRes.className="result win";
-    mineRes.innerText="+50";
-    update();
-  }
+function withdraw(){
+  walletInfo.textContent="Withdrawal pending...";
 }
 </script>
-
 </body>
 </html>
