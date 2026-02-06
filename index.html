@@ -2,303 +2,315 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DEMO Casino</title>
+<title>Demo Casino</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
 
 <style>
-*{box-sizing:border-box;font-family:Inter,Arial}
+:root{
+--bg:#0b0f1e;
+--card:#151a33;
+--accent:#4cff8f;
+--danger:#ff4c4c;
+--gold:#ffd24c;
+}
+*{box-sizing:border-box}
 body{
-  margin:0;
-  background:radial-gradient(circle at top,#0f2027,#000);
-  color:#fff;
+margin:0;
+background:radial-gradient(circle at top,#121633,#070a15);
+color:#fff;
+font-family:Inter,system-ui,sans-serif;
 }
-.hidden{display:none}
-h1,h2{margin:10px 0}
-button{
-  background:linear-gradient(135deg,#ffb347,#ffcc33);
-  border:none;
-  padding:12px 18px;
-  border-radius:14px;
-  font-weight:700;
-  cursor:pointer;
-  margin:5px;
+header{
+display:flex;
+justify-content:space-between;
+align-items:center;
+padding:12px;
+background:rgba(10,12,25,.9);
+backdrop-filter:blur(10px);
 }
-button:active{transform:scale(.95)}
-input{
-  width:100%;
-  padding:12px;
-  border-radius:12px;
-  border:none;
-  margin:8px 0;
-}
+.balance{color:var(--gold);font-weight:700}
 .card{
-  background:rgba(255,255,255,.07);
-  backdrop-filter:blur(12px);
-  border-radius:20px;
-  padding:15px;
-  margin:10px;
-  animation:fade .4s;
+background:linear-gradient(180deg,#181d3a,#0f132b);
+border-radius:16px;
+padding:16px;
+margin:12px;
+box-shadow:0 0 30px rgba(0,0,0,.4);
 }
-.grid{
-  display:grid;
-  grid-template-columns:repeat(2,1fr);
-  gap:10px;
+button{
+width:100%;
+padding:14px;
+margin-top:8px;
+border:none;
+border-radius:12px;
+font-size:16px;
+font-weight:700;
+background:linear-gradient(135deg,var(--accent),#2ecc71);
+color:#000;
+cursor:pointer;
 }
-.slot{
-  height:80px;
-  font-size:36px;
-  display:flex;
-  align-items:center;
-  justify-content:center;
+button.red{background:linear-gradient(135deg,var(--danger),#c0392b)}
+.hidden{display:none}
+input{
+width:100%;
+padding:12px;
+border-radius:10px;
+border:none;
+font-size:16px;
+margin-top:8px;
 }
-.neon{text-shadow:0 0 10px #0ff,0 0 20px #0ff}
-@keyframes fade{
-  from{opacity:0;transform:translateY(15px)}
-  to{opacity:1}
+.menu button{margin-bottom:10px}
+
+/* SLOT */
+.reels{
+display:flex;
+justify-content:center;
+gap:16px;
+font-size:48px;
+margin:20px 0;
+animation:idle 2s infinite ease-in-out;
+}
+@keyframes idle{0%,100%{transform:scale(1)}50%{transform:scale(1.03)}}
+
+/* JETX */
+#jet{
+position:relative;
+height:180px;
+overflow:hidden;
+background:linear-gradient(#0a0f2b,#020417);
+border-radius:14px;
 }
 #plane{
-  position:relative;
-  height:140px;
-  overflow:hidden;
+position:absolute;
+left:20px;
+bottom:40px;
+font-size:36px;
+transition:.05s;
 }
-#plane span{
-  position:absolute;
-  font-size:42px;
-  left:0;
-  top:60px;
+#mult{
+position:absolute;
+top:10px;
+left:10px;
+font-weight:800;
+color:var(--accent);
 }
-.bar{
-  height:10px;
-  background:#222;
-  border-radius:5px;
-  overflow:hidden;
+
+/* ROULETTE */
+#wheel{
+width:200px;
+height:200px;
+border-radius:50%;
+border:8px solid #222;
+margin:20px auto;
+background:conic-gradient(
+red 0deg 45deg,
+black 45deg 90deg,
+red 90deg 135deg,
+black 135deg 180deg,
+red 180deg 225deg,
+black 225deg 270deg,
+red 270deg 315deg,
+green 315deg 360deg
+);
+transition:transform 3s cubic-bezier(.1,.9,.2,1);
 }
-.bar div{
-  height:100%;
-  background:linear-gradient(90deg,#0f0,#ff0,#f00);
-  width:0%;
+
+/* MINES */
+.grid{
+display:grid;
+grid-template-columns:repeat(5,1fr);
+gap:8px;
+margin-top:10px;
 }
-.small{font-size:13px;opacity:.85}
+.cell{
+background:#222;
+aspect-ratio:1;
+border-radius:8px;
+display:flex;
+align-items:center;
+justify-content:center;
+font-size:22px;
+cursor:pointer;
+}
+.cell.safe{background:#2ecc71}
+.cell.bomb{background:#e74c3c}
 </style>
 </head>
 
 <body>
+<header>
+<div id="user">👤 Guest</div>
+<div class="balance">💰 <span id="bal">0</span></div>
+</header>
 
-<!-- AUTH -->
-<div id="auth" class="card">
-  <h1 class="neon">🎰 DEMO CASINO</h1>
-  <input id="name" placeholder="Введите ник">
-  <button onclick="login()">Войти</button>
+<!-- REGISTRATION -->
+<div id="reg" class="card">
+<h2>Регистрация</h2>
+<input id="nick" placeholder="Ваш ник">
+<button onclick="register()">Войти</button>
 </div>
 
-<!-- APP -->
-<div id="app" class="hidden">
-
-<div class="card">
-  👤 <span id="user"></span><br>
-  💰 Баланс: <span id="bal"></span>
-  <button onclick="dep()">➕</button>
-  <button onclick="wd()">➖</button>
-</div>
-
-<div class="card small">
-  📊 RTP<br>
-  Slots: 96%<br>
-  JetX: 97%<br>
-  Roulette: 94.5%<br>
-  Mines: 94%
-</div>
-
-<div class="grid">
-  <button onclick="openGame('slots')">🎰 Slots</button>
-  <button onclick="openGame('jet')">✈️ JetX</button>
-  <button onclick="openGame('roulette')">🎡 Roulette</button>
-  <button onclick="openGame('mines')">💣 Mines</button>
+<!-- MENU -->
+<div id="menu" class="card hidden menu">
+<button onclick="openGame('slots')">🎰 Slots</button>
+<button onclick="openGame('jetx')">✈ JetX</button>
+<button onclick="openGame('roulette')">🎡 Roulette</button>
+<button onclick="openGame('mines')">💣 Mines</button>
 </div>
 
 <!-- SLOTS -->
 <div id="slots" class="card hidden">
-  <h2>🎰 Slots</h2>
-  <div class="grid">
-    <div class="slot" id="s1">🍒</div>
-    <div class="slot" id="s2">🍋</div>
-    <div class="slot" id="s3">🍉</div>
-    <div class="slot" id="s4">⭐</div>
-  </div>
-  <button onclick="spin()">SPIN (-100)</button>
+<h3>Slots (RTP 96%)</h3>
+<div class="reels" id="reels">🍒 🍋 🍊</div>
+<button onclick="spin()">SPIN</button>
 </div>
 
 <!-- JETX -->
-<div id="jet" class="card hidden">
-  <h2>✈️ JetX</h2>
-  <div id="plane">
-    <span id="pl">✈️</span>
-  </div>
-  <div class="bar"><div id="jetbar"></div></div>
-  <button onclick="startJet()">START</button>
+<div id="jetx" class="card hidden">
+<h3>JetX</h3>
+<div id="jet">
+<div id="mult">x1.00</div>
+<div id="plane">✈</div>
+</div>
+<button onclick="startJet()">START</button>
+<button class="red" onclick="cashOut()">CASHOUT</button>
 </div>
 
 <!-- ROULETTE -->
 <div id="roulette" class="card hidden">
-  <h2>🎡 Roulette</h2>
-  <button onclick="roll()">ROLL</button>
-  <div id="rres"></div>
+<h3>Roulette</h3>
+<div id="wheel"></div>
+<button onclick="spinRoulette()">SPIN</button>
 </div>
 
 <!-- MINES -->
 <div id="mines" class="card hidden">
-  <h2>💣 Mines</h2>
-  <div class="grid" id="minegrid"></div>
-</div>
-
-<!-- HISTORY -->
-<div class="card">
-  <h3>📊 History</h3>
-  <div id="hist"></div>
-</div>
-
+<h3>Mines</h3>
+<div class="grid" id="grid"></div>
 </div>
 
 <script>
-/* === RTP === */
-const RTP = { slots:0.96, jetx:0.97, roulette:0.945, mines:0.94 };
+const tg = window.Telegram.WebApp;
+tg.expand();
 
-/* === STATE === */
-let bal = +localStorage.getItem("bal") || 10000;
-let user = localStorage.getItem("user");
-let hist = JSON.parse(localStorage.getItem("hist")||"[]");
+/* STORAGE */
+let user = JSON.parse(localStorage.getItem("casino_user"));
+let balance = user?.balance ?? 1000;
 
-/* === AUTH === */
-function login(){
-  if(!name.value.trim()) return alert("Введите ник");
-  user = name.value.trim();
-  localStorage.setItem("user",user);
-  auth.classList.add("hidden");
-  app.classList.remove("hidden");
-  init();
-}
+const balEl = document.getElementById("bal");
+const userEl = document.getElementById("user");
 
-/* === INIT === */
+/* INIT */
 function init(){
-  document.getElementById("user").textContent=user;
-  updateBal();
-  renderHist();
-  initMines();
+document.getElementById("reg").classList.add("hidden");
+document.getElementById("menu").classList.remove("hidden");
+userEl.textContent="👤 "+user.nick;
+updateBalance();
 }
-function updateBal(){
-  document.getElementById("bal").textContent=bal;
-  localStorage.setItem("bal",bal);
+if(user) init();
+
+/* REG */
+function register(){
+const n = nick.value.trim();
+if(!n) return;
+user={nick:n,balance:balance};
+localStorage.setItem("casino_user",JSON.stringify(user));
+init();
 }
 
-/* === NAV === */
+/* BALANCE */
+function updateBalance(){
+balEl.textContent=balance;
+user.balance=balance;
+localStorage.setItem("casino_user",JSON.stringify(user));
+}
+
+/* MENU */
 function openGame(id){
-  ["slots","jet","roulette","mines"].forEach(g=>window[g].classList.add("hidden"));
-  window[id].classList.remove("hidden");
+document.querySelectorAll(".card").forEach(c=>c.classList.add("hidden"));
+document.getElementById(id).classList.remove("hidden");
 }
 
-/* === SLOTS === */
-const icons=["🍒","🍋","🍉","⭐","7️⃣"];
+/* SLOTS */
+const icons=["🍒","🍋","🍊","⭐","💎"];
 function spin(){
-  bal-=100; updateBal(); sound(300);
-  [s1,s2,s3,s4].forEach(s=>{
-    s.textContent=icons[Math.floor(Math.random()*icons.length)];
-  });
-
-  let win=false;
-  if(s1.textContent===s2.textContent && s2.textContent===s3.textContent)
-    win=Math.random()<RTP.slots;
-  if(s2.textContent===s3.textContent && s3.textContent===s4.textContent)
-    win=win||Math.random()<RTP.slots;
-
-  if(win){
-    const prize=600+Math.floor(Math.random()*600);
-    bal+=prize;
-    sound(700);
-    log("Slots WIN +"+prize);
-  }
-  updateBal();
+balance-=10;
+let a=icons[rand()],b=icons[rand()],c=icons[rand()];
+reels.textContent=`${a} ${b} ${c}`;
+if(a===b && b===c){balance+=150;}
+updateBalance();
 }
 
-/* === JETX === */
-let jetInt;
+/* JETX */
+let jetRun=false,t=0,crashAt=Math.random()*3+1.5,intv;
 function startJet(){
-  let m=1, crashed=false;
-  jetbar.style.width="0%";
-  pl.style.transform="translate(0,60px) rotate(-5deg)";
-  const crashPoint=(Math.random()*(RTP.jetx*10))+1.5;
-
-  jetInt=setInterval(()=>{
-    m+=0.03+m*0.002;
-    const x=m*28;
-    const y=60-Math.log(m)*18;
-    pl.style.transform=`translate(${x}px,${y}px) rotate(${m*2}deg)`;
-    jetbar.style.width=Math.min(m*10,100)+"%";
-
-    if(m>=crashPoint&&!crashed){
-      crashed=true;
-      clearInterval(jetInt);
-      sound(120);
-      const reward=Math.floor(m*180);
-      bal+=reward;
-      log("JetX x"+m.toFixed(2));
-      updateBal();
-    }
-  },100);
+if(jetRun) return;
+jetRun=true;t=0;
+crashAt=Math.random()<0.96?(1.2+Math.random()*3):(4+Math.random()*10);
+intv=setInterval(()=>{
+t+=0.05;
+let m=Math.exp(t/2);
+mult.textContent="x"+m.toFixed(2);
+plane.style.transform=`translate(${t*40}px,${-t*t*4}px)`;
+if(m>=crashAt){stopJet(false);}
+},50);
+}
+function cashOut(){
+if(!jetRun) return;
+let win=Math.floor(50*Math.exp(t/2));
+balance+=win;
+stopJet(true);
+}
+function stopJet(ok){
+clearInterval(intv);
+jetRun=false;
+updateBalance();
 }
 
-/* === ROULETTE === */
-function roll(){
-  const r=Math.floor(Math.random()*36);
-  rres.textContent="Number: "+r;
-  if(r%2===0&&Math.random()<RTP.roulette){
-    bal+=200; log("Roulette WIN");
-  }else bal-=100;
-  updateBal();
+/* ROULETTE */
+function spinRoulette(){
+balance-=20;
+let deg=360*5+Math.random()*360;
+wheel.style.transform=`rotate(${deg}deg)`;
+setTimeout(()=>{
+if(Math.random()<0.48) balance+=40;
+updateBalance();
+},3000);
 }
 
-/* === MINES === */
+/* MINES */
+const grid=document.getElementById("grid");
+let bombs=[];
 function initMines(){
-  minegrid.innerHTML="";
-  for(let i=0;i<9;i++){
-    let b=document.createElement("button");
-    b.textContent="❓";
-    b.onclick=()=>{
-      if(Math.random()<0.2){
-        b.textContent="💣"; bal-=500;
-      }else{
-        b.textContent="💎"; bal+=200;
-      }
-      updateBal();
-    };
-    minegrid.appendChild(b);
-  }
+grid.innerHTML="";
+bombs=[];
+for(let i=0;i<25;i++){
+let d=document.createElement("div");
+d.className="cell";
+d.onclick=()=>openCell(d,i);
+grid.appendChild(d);
 }
-
-/* === HISTORY === */
-function log(t){
-  hist.unshift(t);
-  hist=hist.slice(0,10);
-  localStorage.setItem("hist",JSON.stringify(hist));
-  renderHist();
+while(bombs.length<5){
+let r=Math.floor(Math.random()*25);
+if(!bombs.includes(r)) bombs.push(r);
 }
-function renderHist(){
-  histDiv.innerHTML=hist.map(h=>"• "+h).join("<br>");
 }
-
-/* === FINANCE === */
-function dep(){bal+=5000;updateBal();alert("Deposit pending (demo)")}
-function wd(){alert("Withdrawal processing (demo)")}
-
-/* === SOUND === */
-const ctx=new AudioContext();
-function sound(f){
-  let o=ctx.createOscillator(),g=ctx.createGain();
-  o.frequency.value=f;o.connect(g);g.connect(ctx.destination);
-  g.gain.value=.15;o.start();o.stop(ctx.currentTime+.1);
+function openCell(el,i){
+if(bombs.includes(i)){
+el.textContent="💣";
+el.classList.add("bomb");
+balance-=50;
+}else{
+el.textContent="💎";
+el.classList.add("safe");
+balance+=20;
 }
+updateBalance();
+}
+initMines();
 
-/* AUTO LOGIN */
-if(user){auth.classList.add("hidden");app.classList.remove("hidden");init();}
+/* UTILS */
+function rand(){return Math.floor(Math.random()*icons.length);}
 </script>
 </body>
 </html>
