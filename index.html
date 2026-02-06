@@ -49,7 +49,22 @@ background:linear-gradient(135deg,var(--accent),#2ecc71);
 color:#000;
 cursor:pointer;
 }
-button.red{background:linear-gradient(135deg,var(--danger),#c0392b)}
+button.red{
+background:linear-gradient(135deg,var(--danger),#c0392b);
+color:#fff;
+}
+button:disabled{
+opacity:.4;
+cursor:not-allowed;
+}
+button.active-cash{
+animation:pulse 1s infinite;
+}
+@keyframes pulse{
+0%{box-shadow:0 0 0 rgba(76,255,143,.5)}
+50%{box-shadow:0 0 20px rgba(76,255,143,1)}
+100%{box-shadow:0 0 0 rgba(76,255,143,.5)}
+}
 .hidden{display:none}
 input{
 width:100%;
@@ -70,7 +85,10 @@ font-size:48px;
 margin:20px 0;
 animation:idle 2s infinite ease-in-out;
 }
-@keyframes idle{0%,100%{transform:scale(1)}50%{transform:scale(1.03)}}
+@keyframes idle{
+0%,100%{transform:scale(1)}
+50%{transform:scale(1.03)}
+}
 
 /* JETX */
 #jet{
@@ -143,7 +161,7 @@ cursor:pointer;
 <div class="balance">💰 <span id="bal">0</span></div>
 </header>
 
-<!-- REGISTRATION -->
+<!-- REG -->
 <div id="reg" class="card">
 <h2>Регистрация</h2>
 <input id="nick" placeholder="Ваш ник">
@@ -163,6 +181,7 @@ cursor:pointer;
 <h3>Slots (RTP 96%)</h3>
 <div class="reels" id="reels">🍒 🍋 🍊</div>
 <button onclick="spin()">SPIN</button>
+<button onclick="goBack()">⬅ Назад</button>
 </div>
 
 <!-- JETX -->
@@ -173,7 +192,8 @@ cursor:pointer;
 <div id="plane">✈</div>
 </div>
 <button onclick="startJet()">START</button>
-<button class="red" onclick="cashOut()">CASHOUT</button>
+<button id="cashBtn" class="red" onclick="cashOut()" disabled>💰 Забрать</button>
+<button onclick="goBack()">⬅ Назад</button>
 </div>
 
 <!-- ROULETTE -->
@@ -181,54 +201,57 @@ cursor:pointer;
 <h3>Roulette</h3>
 <div id="wheel"></div>
 <button onclick="spinRoulette()">SPIN</button>
+<button onclick="goBack()">⬅ Назад</button>
 </div>
 
 <!-- MINES -->
 <div id="mines" class="card hidden">
 <h3>Mines</h3>
 <div class="grid" id="grid"></div>
+<button onclick="goBack()">⬅ Назад</button>
 </div>
 
 <script>
 const tg = window.Telegram.WebApp;
 tg.expand();
 
-/* STORAGE */
 let user = JSON.parse(localStorage.getItem("casino_user"));
 let balance = user?.balance ?? 1000;
 
 const balEl = document.getElementById("bal");
 const userEl = document.getElementById("user");
+const cashBtn = document.getElementById("cashBtn");
 
-/* INIT */
 function init(){
-document.getElementById("reg").classList.add("hidden");
-document.getElementById("menu").classList.remove("hidden");
+reg.classList.add("hidden");
+menu.classList.remove("hidden");
 userEl.textContent="👤 "+user.nick;
 updateBalance();
 }
 if(user) init();
 
-/* REG */
 function register(){
 const n = nick.value.trim();
 if(!n) return;
-user={nick:n,balance:balance};
+user={nick:n,balance};
 localStorage.setItem("casino_user",JSON.stringify(user));
 init();
 }
 
-/* BALANCE */
 function updateBalance(){
 balEl.textContent=balance;
 user.balance=balance;
 localStorage.setItem("casino_user",JSON.stringify(user));
 }
 
-/* MENU */
 function openGame(id){
 document.querySelectorAll(".card").forEach(c=>c.classList.add("hidden"));
 document.getElementById(id).classList.remove("hidden");
+}
+
+function goBack(){
+document.querySelectorAll(".card").forEach(c=>c.classList.add("hidden"));
+menu.classList.remove("hidden");
 }
 
 /* SLOTS */
@@ -237,33 +260,39 @@ function spin(){
 balance-=10;
 let a=icons[rand()],b=icons[rand()],c=icons[rand()];
 reels.textContent=`${a} ${b} ${c}`;
-if(a===b && b===c){balance+=150;}
+if(a===b && b===c) balance+=150;
 updateBalance();
 }
 
 /* JETX */
-let jetRun=false,t=0,crashAt=Math.random()*3+1.5,intv;
+let jetRun=false,t=0,crashAt=0,intv;
 function startJet(){
 if(jetRun) return;
-jetRun=true;t=0;
+jetRun=true;
+t=0;
 crashAt=Math.random()<0.96?(1.2+Math.random()*3):(4+Math.random()*10);
+cashBtn.disabled=false;
+cashBtn.classList.add("active-cash");
 intv=setInterval(()=>{
 t+=0.05;
 let m=Math.exp(t/2);
 mult.textContent="x"+m.toFixed(2);
 plane.style.transform=`translate(${t*40}px,${-t*t*4}px)`;
-if(m>=crashAt){stopJet(false);}
+if(m>=crashAt) stopJet();
 },50);
 }
 function cashOut(){
 if(!jetRun) return;
-let win=Math.floor(50*Math.exp(t/2));
-balance+=win;
-stopJet(true);
+cashBtn.disabled=true;
+cashBtn.classList.remove("active-cash");
+balance+=Math.floor(50*Math.exp(t/2));
+stopJet();
 }
-function stopJet(ok){
+function stopJet(){
 clearInterval(intv);
 jetRun=false;
+cashBtn.disabled=true;
+cashBtn.classList.remove("active-cash");
 updateBalance();
 }
 
@@ -309,7 +338,6 @@ updateBalance();
 }
 initMines();
 
-/* UTILS */
 function rand(){return Math.floor(Math.random()*icons.length);}
 </script>
 </body>
