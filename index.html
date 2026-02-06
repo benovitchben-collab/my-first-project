@@ -11,7 +11,6 @@ body{
   margin:0;
   background:radial-gradient(circle at top,#0f2027,#000);
   color:#fff;
-  overflow-x:hidden;
 }
 .hidden{display:none}
 h1,h2{margin:10px 0}
@@ -19,7 +18,7 @@ button{
   background:linear-gradient(135deg,#ffb347,#ffcc33);
   border:none;
   padding:12px 18px;
-  border-radius:12px;
+  border-radius:14px;
   font-weight:700;
   cursor:pointer;
   margin:5px;
@@ -28,14 +27,14 @@ button:active{transform:scale(.95)}
 input{
   width:100%;
   padding:12px;
-  border-radius:10px;
+  border-radius:12px;
   border:none;
   margin:8px 0;
 }
 .card{
-  background:rgba(255,255,255,.06);
-  backdrop-filter:blur(10px);
-  border-radius:18px;
+  background:rgba(255,255,255,.07);
+  backdrop-filter:blur(12px);
+  border-radius:20px;
   padding:15px;
   margin:10px;
   animation:fade .4s;
@@ -47,33 +46,30 @@ input{
 }
 .slot{
   height:80px;
-  font-size:32px;
+  font-size:36px;
   display:flex;
   align-items:center;
   justify-content:center;
 }
+.neon{text-shadow:0 0 10px #0ff,0 0 20px #0ff}
 @keyframes fade{
   from{opacity:0;transform:translateY(15px)}
   to{opacity:1}
 }
-.neon{
-  text-shadow:0 0 10px #0ff,0 0 20px #0ff;
-}
 #plane{
   position:relative;
-  height:120px;
+  height:140px;
   overflow:hidden;
 }
 #plane span{
   position:absolute;
-  font-size:40px;
-  left:10px;
-  top:40px;
-  transition:transform .1s;
+  font-size:42px;
+  left:0;
+  top:60px;
 }
 .bar{
-  height:8px;
-  background:#333;
+  height:10px;
+  background:#222;
   border-radius:5px;
   overflow:hidden;
 }
@@ -82,26 +78,35 @@ input{
   background:linear-gradient(90deg,#0f0,#ff0,#f00);
   width:0%;
 }
+.small{font-size:13px;opacity:.85}
 </style>
 </head>
 
 <body>
 
-<!-- REGISTRATION -->
+<!-- AUTH -->
 <div id="auth" class="card">
   <h1 class="neon">🎰 DEMO CASINO</h1>
-  <input id="name" placeholder="Nickname">
+  <input id="name" placeholder="Введите ник">
   <button onclick="login()">Войти</button>
 </div>
 
-<!-- MAIN -->
+<!-- APP -->
 <div id="app" class="hidden">
 
 <div class="card">
-  👤 <span id="user"></span> |
+  👤 <span id="user"></span><br>
   💰 Баланс: <span id="bal"></span>
   <button onclick="dep()">➕</button>
   <button onclick="wd()">➖</button>
+</div>
+
+<div class="card small">
+  📊 RTP<br>
+  Slots: 96%<br>
+  JetX: 97%<br>
+  Roulette: 94.5%<br>
+  Mines: 94%
 </div>
 
 <div class="grid">
@@ -120,7 +125,7 @@ input{
     <div class="slot" id="s3">🍉</div>
     <div class="slot" id="s4">⭐</div>
   </div>
-  <button onclick="spin()">SPIN</button>
+  <button onclick="spin()">SPIN (-100)</button>
 </div>
 
 <!-- JETX -->
@@ -155,6 +160,9 @@ input{
 </div>
 
 <script>
+/* === RTP === */
+const RTP = { slots:0.96, jetx:0.97, roulette:0.945, mines:0.94 };
+
 /* === STATE === */
 let bal = +localStorage.getItem("bal") || 10000;
 let user = localStorage.getItem("user");
@@ -162,7 +170,8 @@ let hist = JSON.parse(localStorage.getItem("hist")||"[]");
 
 /* === AUTH === */
 function login(){
-  user=name.value||"Player";
+  if(!name.value.trim()) return alert("Введите ник");
+  user = name.value.trim();
   localStorage.setItem("user",user);
   auth.classList.add("hidden");
   app.classList.remove("hidden");
@@ -171,17 +180,15 @@ function login(){
 
 /* === INIT === */
 function init(){
-  userSpan.textContent=user;
+  document.getElementById("user").textContent=user;
   updateBal();
   renderHist();
   initMines();
 }
-const userSpan=user;
 function updateBal(){
-  balSpan.textContent=bal;
+  document.getElementById("bal").textContent=bal;
   localStorage.setItem("bal",bal);
 }
-const balSpan=bal;
 
 /* === NAV === */
 function openGame(id){
@@ -192,12 +199,22 @@ function openGame(id){
 /* === SLOTS === */
 const icons=["🍒","🍋","🍉","⭐","7️⃣"];
 function spin(){
-  bal-=100;updateBal();sound(300);
+  bal-=100; updateBal(); sound(300);
   [s1,s2,s3,s4].forEach(s=>{
     s.textContent=icons[Math.floor(Math.random()*icons.length)];
   });
-  if(s1.textContent===s2.textContent&&s2.textContent===s3.textContent){
-    bal+=1000;sound(700);log("Slots WIN +1000");
+
+  let win=false;
+  if(s1.textContent===s2.textContent && s2.textContent===s3.textContent)
+    win=Math.random()<RTP.slots;
+  if(s2.textContent===s3.textContent && s3.textContent===s4.textContent)
+    win=win||Math.random()<RTP.slots;
+
+  if(win){
+    const prize=600+Math.floor(Math.random()*600);
+    bal+=prize;
+    sound(700);
+    log("Slots WIN +"+prize);
   }
   updateBal();
 }
@@ -205,15 +222,24 @@ function spin(){
 /* === JETX === */
 let jetInt;
 function startJet(){
-  let m=1;jetbar.style.width="0%";
-  pl.style.transform="translateX(0)";
+  let m=1, crashed=false;
+  jetbar.style.width="0%";
+  pl.style.transform="translate(0,60px) rotate(-5deg)";
+  const crashPoint=(Math.random()*(RTP.jetx*10))+1.5;
+
   jetInt=setInterval(()=>{
-    m+=0.05;
+    m+=0.03+m*0.002;
+    const x=m*28;
+    const y=60-Math.log(m)*18;
+    pl.style.transform=`translate(${x}px,${y}px) rotate(${m*2}deg)`;
     jetbar.style.width=Math.min(m*10,100)+"%";
-    pl.style.transform=`translateX(${m*30}px)`;
-    if(Math.random()<0.02){
+
+    if(m>=crashPoint&&!crashed){
+      crashed=true;
       clearInterval(jetInt);
-      bal+=Math.floor(m*200);
+      sound(120);
+      const reward=Math.floor(m*180);
+      bal+=reward;
       log("JetX x"+m.toFixed(2));
       updateBal();
     }
@@ -224,8 +250,9 @@ function startJet(){
 function roll(){
   const r=Math.floor(Math.random()*36);
   rres.textContent="Number: "+r;
-  if(r%2===0){bal+=200;log("Roulette WIN")}
-  else{bal-=100}
+  if(r%2===0&&Math.random()<RTP.roulette){
+    bal+=200; log("Roulette WIN");
+  }else bal-=100;
   updateBal();
 }
 
@@ -237,12 +264,12 @@ function initMines(){
     b.textContent="❓";
     b.onclick=()=>{
       if(Math.random()<0.2){
-        b.textContent="💣";bal-=500;
+        b.textContent="💣"; bal-=500;
       }else{
-        b.textContent="💎";bal+=200;
+        b.textContent="💎"; bal+=200;
       }
       updateBal();
-    }
+    };
     minegrid.appendChild(b);
   }
 }
@@ -258,9 +285,9 @@ function renderHist(){
   histDiv.innerHTML=hist.map(h=>"• "+h).join("<br>");
 }
 
-/* === FAKE FINANCE === */
-function dep(){bal+=5000;updateBal();alert("Deposit pending")}
-function wd(){alert("Withdrawal processing")}
+/* === FINANCE === */
+function dep(){bal+=5000;updateBal();alert("Deposit pending (demo)")}
+function wd(){alert("Withdrawal processing (demo)")}
 
 /* === SOUND === */
 const ctx=new AudioContext();
