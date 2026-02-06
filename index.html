@@ -83,11 +83,6 @@ justify-content:center;
 gap:16px;
 font-size:48px;
 margin:20px 0;
-animation:idle 2s infinite ease-in-out;
-}
-@keyframes idle{
-0%,100%{transform:scale(1)}
-50%{transform:scale(1.03)}
 }
 
 /* JETX */
@@ -170,6 +165,8 @@ cursor:pointer;
 
 <!-- MENU -->
 <div id="menu" class="card hidden menu">
+<label>💸 Ставка</label>
+<input type="number" id="betInput" min="1">
 <button onclick="openGame('slots')">🎰 Slots</button>
 <button onclick="openGame('jetx')">✈ JetX</button>
 <button onclick="openGame('roulette')">🎡 Roulette</button>
@@ -217,11 +214,16 @@ tg.expand();
 
 let user = JSON.parse(localStorage.getItem("casino_user"));
 let balance = user?.balance ?? 1000;
+let bet = Number(localStorage.getItem("bet")) || 10;
 
 const balEl = document.getElementById("bal");
 const userEl = document.getElementById("user");
+const betInput = document.getElementById("betInput");
 const cashBtn = document.getElementById("cashBtn");
 
+betInput.value = bet;
+
+/* INIT */
 function init(){
 reg.classList.add("hidden");
 menu.classList.remove("hidden");
@@ -230,6 +232,7 @@ updateBalance();
 }
 if(user) init();
 
+/* REG */
 function register(){
 const n = nick.value.trim();
 if(!n) return;
@@ -238,17 +241,27 @@ localStorage.setItem("casino_user",JSON.stringify(user));
 init();
 }
 
+/* BALANCE */
 function updateBalance(){
 balEl.textContent=balance;
 user.balance=balance;
 localStorage.setItem("casino_user",JSON.stringify(user));
 }
 
+/* BET */
+betInput.onchange=()=>{
+bet=Math.max(1,Math.min(balance,Number(betInput.value)));
+betInput.value=bet;
+localStorage.setItem("bet",bet);
+};
+
+/* MENU */
 function openGame(id){
 document.querySelectorAll(".card").forEach(c=>c.classList.add("hidden"));
 document.getElementById(id).classList.remove("hidden");
 }
 
+/* BACK */
 function goBack(){
 document.querySelectorAll(".card").forEach(c=>c.classList.add("hidden"));
 menu.classList.remove("hidden");
@@ -257,17 +270,20 @@ menu.classList.remove("hidden");
 /* SLOTS */
 const icons=["🍒","🍋","🍊","⭐","💎"];
 function spin(){
-balance-=10;
+if(balance<bet) return;
+balance-=bet;
 let a=icons[rand()],b=icons[rand()],c=icons[rand()];
 reels.textContent=`${a} ${b} ${c}`;
-if(a===b && b===c) balance+=150;
+if(a===b && b===c) balance+=bet*15;
 updateBalance();
 }
 
 /* JETX */
 let jetRun=false,t=0,crashAt=0,intv;
 function startJet(){
-if(jetRun) return;
+if(jetRun || balance<bet) return;
+balance-=bet;
+updateBalance();
 jetRun=true;
 t=0;
 crashAt=Math.random()<0.96?(1.2+Math.random()*3):(4+Math.random()*10);
@@ -283,9 +299,7 @@ if(m>=crashAt) stopJet();
 }
 function cashOut(){
 if(!jetRun) return;
-cashBtn.disabled=true;
-cashBtn.classList.remove("active-cash");
-balance+=Math.floor(50*Math.exp(t/2));
+balance+=Math.floor(bet*Math.exp(t/2));
 stopJet();
 }
 function stopJet(){
@@ -298,11 +312,12 @@ updateBalance();
 
 /* ROULETTE */
 function spinRoulette(){
-balance-=20;
+if(balance<bet) return;
+balance-=bet;
 let deg=360*5+Math.random()*360;
 wheel.style.transform=`rotate(${deg}deg)`;
 setTimeout(()=>{
-if(Math.random()<0.48) balance+=40;
+if(Math.random()<0.48) balance+=bet*2;
 updateBalance();
 },3000);
 }
@@ -325,19 +340,21 @@ if(!bombs.includes(r)) bombs.push(r);
 }
 }
 function openCell(el,i){
+if(balance<bet) return;
 if(bombs.includes(i)){
 el.textContent="💣";
 el.classList.add("bomb");
-balance-=50;
+balance-=bet;
 }else{
 el.textContent="💎";
 el.classList.add("safe");
-balance+=20;
+balance+=bet;
 }
 updateBalance();
 }
 initMines();
 
+/* UTILS */
 function rand(){return Math.floor(Math.random()*icons.length);}
 </script>
 </body>
